@@ -1,0 +1,47 @@
+name: Phase 1 Daily Ingest & Kernel Check
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 21 * * 1-5' # 미국 정규장 마감 후 자동 실행 (한국시간 화~토 06:30)
+
+permissions:
+  contents: write
+
+jobs:
+  run-phase1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Phase 1 Pipeline
+        env:
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+        run: python run_phase1.py
+
+      - name: Commit updated status snapshot
+        run: |
+          git config user.name "AutoAlphaBot"
+          git config user.email "bot@auto-alpha-lab.local"
+          git add docs/status.json
+          git diff --cached --quiet || git commit -m "chore: update phase1 status [skip ci]"
+          git push
