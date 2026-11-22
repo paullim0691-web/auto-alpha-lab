@@ -1,0 +1,92 @@
+{
+  "updated_at_utc": "2026-11-22T12:32:39.190846+00:00",
+  "phase": "PHASE_1_ACTIVE",
+  "alpaca_paper": {
+    "status": "AccountStatus.ACTIVE",
+    "equity": 100000.0,
+    "buying_power": 200000.0,
+    "tradable_us_equities": 13509
+  },
+  "data_meta": {
+    "feed_used": "SIP_DELAYED",
+    "valid_symbols": 62,
+    "quarantined": [],
+    "start_date": "2023-08-11",
+    "end_date": "2026-11-20",
+    "trading_days": 824
+  },
+  "fred_latest": {
+    "DFF": {
+      "date": "2026-11-19",
+      "value": 3.88
+    },
+    "DGS10": {
+      "date": "2026-11-19",
+      "value": 5.04
+    },
+    "DGS2": {
+      "date": "2026-11-19",
+      "value": 4.76
+    },
+    "VIXCLS": {
+      "date": "2026-11-19",
+      "value": 28.44
+    }
+  },
+  "llm_health": {
+    "gemini": {
+      "ok": true,
+      "sample_models": [
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-preview-tts",
+        "gemini-flash-latest",
+        "gemini-flash-lite-latest",
+        "gemini-2.5-flash-lite"
+      ]
+    },
+    "groq": {
+      "ok": true,
+      "sample_models": [
+        "whisper-large-v3-turbo",
+        "allam-2-7b",
+        "meta-llama/llama-prompt-guard-2-22m",
+        "openai/gpt-oss-safeguard-20b",
+        "meta-llama/llama-prompt-guard-2-86m"
+      ]
+    }
+  },
+  "benchmark_oos_eval": {
+    "bench_spy_hold": {
+      "log_wealth": 0.23509843411868447,
+      "cagr": 0.11014228627407108,
+      "sharpe": 0.7096313987390388,
+      "deflated_sharpe": 1.0,
+      "max_drawdown": -0.18754263088722167,
+      "passed": true,
+      "cusum_decay": 7.28
+    },
+    "bench_cs_momentum": {
+      "log_wealth": 0.5292143091736847,
+      "cagr": 0.26516982177634696,
+      "sharpe": 1.1528310554845562,
+      "deflated_sharpe": 1.0,
+      "max_drawdown": -0.2505392109276786,
+      "passed": true,
+      "cusum_decay": 8.1755
+    },
+    "bench_st_reversal": {
+      "log_wealth": 0.6048454513394316,
+      "cagr": 0.3084198667828728,
+      "sharpe": 0.9424369910301071,
+      "deflated_sharpe": 0.9999999681111966,
+      "max_drawdown": -0.2849630150120701,
+      "passed": true,
+      "cusum_decay": 6.1259
+    }
+  },
+  "shrinkage_kelly_weights": {
+    "bench_spy_hold": 0.0,
+    "bench_cs_momentum": 2.0,
+    "bench_st_reversal": 0.0
+  }
+}
