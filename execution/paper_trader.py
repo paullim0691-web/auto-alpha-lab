@@ -1,5 +1,4 @@
 import os
-from datetime import datetime, timezone
 from pathlib import Path
 import pandas as pd
 from alpaca.trading.client import TradingClient
@@ -17,9 +16,7 @@ def run_paper_execution_and_dashboard(
     active = get_active_strategies()
 
     oos_returns, gross_map, latest_weights = {}, {}, {}
-    surviving_meta = []
-    retired_now = []
-    shadow_rows = []
+    surviving_meta, retired_now, shadow_rows = [], [], []
     today_dt = closes.index[-1]
 
     for st in active:
@@ -30,7 +27,6 @@ def run_paper_execution_and_dashboard(
         oos_ret, metrics, _ = lockbox_walk_forward_eval(closes, dollar_vol, fn, n_trials=1)
         cusum_val, decayed = cusum_alpha_status(oos_ret, float(oos_ret.mean()))
 
-        # Shadow Ledger에 최근 5영업일 기록 및 실시간 생존 판정
         eq = (1.0 + oos_ret.clip(lower=-0.99)).cumprod()
         for dt_idx in oos_ret.index[-5:]:
             shadow_rows.append((
@@ -38,9 +34,10 @@ def run_paper_execution_and_dashboard(
                 float(w_df.loc[dt_idx].abs().sum()), cusum_val,
             ))
 
-        if decayed and len(active) > 2:
+        # 최근 블라인드 Lockbox에서도 잃고 CUSUM 알파 사망 신호까지 뜨면 자동 퇴출 (레거시 벤치 포함)
+        if decayed and metrics["lockbox_log_wealth"] < 0.0:
             retire_strategy(sid)
-            record_failure(sid, st["origin"], regime_tag, f"CUSUM_DECAY={cusum_val}", f"Live alpha died (cusum={cusum_val}, lockbox={metrics['lockbox_log_wealth']:.3f})")
+            record_failure(sid, st["origin"], regime_tag, f"CUSUM_DECAY={cusum_val}", f"Alpha died (cusum={cusum_val}, lockbox={metrics['lockbox_log_wealth']:.3f})")
             retired_now.append(sid)
             continue
 
@@ -50,15 +47,13 @@ def run_paper_execution_and_dashboard(
         surviving_meta.append({"strategy_id": sid, "origin": st["origin"], "cusum": cusum_val, **metrics})
 
     upsert_shadow_equity(shadow_rows)
-    kelly_w = bootstrapped_kelly_allocate(pd.DataFrame(oos_returns), gross_map, max_gross_leverage=1.80)
+    kelly_w = bootstrapped_kelly_allocate(pd.DataFrame(oos_returns), gross_map, max_gross_leverage=1.80) if oos_returns else {}
 
-    # 최종 목표 포트폴리오 비중 합성
     target_port = pd.Series(0.0, index=closes.columns)
     for sid, kw in kelly_w.items():
         if kw > 0 and sid in latest_weights:
             target_port = target_port + kw * latest_weights[sid]
 
-    # Alpaca 공매도 가능 종목 검증 & 안전 마진(1.80x)
     shortable_map = alpaca_info["shortable_map"]
     for sym in list(target_port.index):
         if target_port[sym] < 0 and not shortable_map.get(sym, False):
@@ -67,7 +62,6 @@ def run_paper_execution_and_dashboard(
     if gross_tot > 1.80:
         target_port = target_port * (1.80 / gross_tot)
 
-    # Alpaca Paper 계좌 실제 리밸런싱 주문 전송
     client = TradingClient(os.environ["ALPACA_API_KEY"], os.environ["ALPACA_SECRET_KEY"], paper=True)
     client.cancel_orders()
     acct = client.get_account()
@@ -76,7 +70,7 @@ def run_paper_execution_and_dashboard(
     last_px = closes.iloc[-1].to_dict()
     frac_map = alpaca_info["fractionable_map"]
 
-    submitted_orders = []
+    submitted_orders, pending_opens = [], []
     all_syms = sorted(set(positions.keys()) | set(target_port[target_port.abs() > 0.005].index))
 
     def _submit(sym: str, side: OrderSide, qty: float):
@@ -86,8 +80,6 @@ def run_paper_execution_and_dashboard(
         except Exception as e:
             submitted_orders.append({"symbol": sym, "side": str(side.value), "qty": float(qty), "status": "ERR", "error": str(e)[:180]})
 
-    # 1단계: 기존 포지션 청산·축소(방향 전환 시 안전 청산), 2단계: 신규 진입·증액
-    pending_opens = []
     for sym in all_syms:
         px = float(last_px.get(sym, 0.0))
         if px <= 0:
@@ -96,7 +88,7 @@ def run_paper_execution_and_dashboard(
         tgt_dollars = float(target_port.get(sym, 0.0)) * equity
 
         if tgt_dollars < 0:
-            tgt_q = -float(int(abs(tgt_dollars) // px))  # 공매도는 무조건 정수 주식만 가능
+            tgt_q = -float(int(abs(tgt_dollars) // px))
         elif abs(tgt_dollars) < 75.0:
             tgt_q = 0.0
         else:
@@ -104,7 +96,7 @@ def run_paper_execution_and_dashboard(
             if tgt_q == 0 and frac_map.get(sym, False):
                 tgt_q = round(tgt_dollars / px, 4)
 
-        if cur_q * tgt_q < 0:  # 롱↔숏 반전 시 오늘은 전량 청산만 수행
+        if cur_q * tgt_q < 0:
             _submit(sym, OrderSide.SELL if cur_q > 0 else OrderSide.BUY, abs(cur_q))
             continue
 
@@ -135,14 +127,17 @@ def run_paper_execution_and_dashboard(
 
 def write_readme_dashboard(status: dict):
     pa = status["paper_execution"]
+    evo = status.get("evolution_summary", {})
+    llm = status.get("llm_research", {})
     eq = pa["account_equity"]
     pnl_pct = (eq / 100_000.0 - 1.0) * 100.0
     lines = [
         "# AutoAlphaLab — Autonomous Quant & Paper Trading Fund",
         f"- **Updated (UTC):** `{status['updated_at_utc']}` | **Regime:** `{status['regime']}`",
         f"- **Alpaca Paper Equity:** **`${eq:,.2f}`** (`{pnl_pct:+.2f}%` vs $100k start) | **Gross Leverage:** `{pa['target_gross_leverage']}x` | **Net Exposure:** `{pa['target_net_exposure']}x`",
+        f"- **Research Cycle:** Math Evo `{evo.get('passed', 0)}/{evo.get('tested', 0)}` passed | LLM Status: `{llm.get('status', 'N/A')}` | Retired Today: `{pa.get('retired_now', [])}`",
         "",
-        "## Active Portfolio Strategies (Bootstrapped Kelly Allocation)",
+        "## Active Portfolio Strategies (Regime-Weighted Kelly Allocation)",
         "| Strategy ID | Origin | Kelly Weight | OOS CAGR | Sharpe | Lockbox CAGR | MDD | CUSUM |",
         "| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |",
     ]
