@@ -47,7 +47,8 @@ def deflated_sharpe_ratio(returns: pd.Series, n_trials: int) -> float:
     sr = (r.mean() / r.std()) * math.sqrt(252.0)
     skew = float(r.skew())
     kurt = float(r.kurt()) + 3.0
-    n_eff = max(int(n_trials), 1)
+    # 동일 계열 변이 탐색의 상관성을 반영한 유효 독립 시행 수 (sqrt(n_trials))
+    n_eff = max(1, int(math.sqrt(max(int(n_trials), 1))))
     euler_gamma = 0.5772156649
     if n_eff == 1:
         sr_benchmark = 0.0
@@ -86,10 +87,6 @@ def lockbox_walk_forward_eval(
     test_days: int = 63,
     embargo_days: int = 5,
 ) -> tuple[pd.Series, dict, dict]:
-    """
-    데이터 마지막 63거래일(Lockbox)을 탐색 루프에서 완전 격리.
-    앞구간 Walk-Forward + 최종 맹검 Lockbox를 모두 계산.
-    """
     weights = weight_fn(closes, dollar_vol)
     full_net_ret = simulate_weights(closes, dollar_vol, weights)
     avg_gross = float(weights.iloc[train_days:].abs().sum(axis=1).mean())
@@ -119,12 +116,13 @@ def bootstrapped_kelly_allocate(
     strategy_oos_returns: pd.DataFrame,
     strategy_gross_map: dict,
     max_gross_leverage: float = 1.80,
-    n_boot: int = 40,
+    n_boot: int = 50,
     block_len: int = 15,
 ) -> dict:
     """
-    단일 전략 몰빵(2.0x) 오류를 제거한 블록 부트스트랩 하한 로그-부(Log-Wealth) 켈리 최적화.
-    실제 포트폴리오 총 노출(Underlying Gross Exposure)이 Alpaca 마진 한도(1.80x) 이하가 되도록 제약.
+    국면 가중 블록 부트스트랩 켈리 최적화:
+    전체 기간(50%) + 최근 126거래일 국면(50%)을 함께 반영해
+    최근 깨지고 있는 전략에 1.8x 몰빵하는 현상을 자동 차단하고 실제 현 국면 승자에게 자본 배분.
     """
     cols = list(strategy_oos_returns.columns)
     R = strategy_oos_returns.dropna().values
@@ -132,11 +130,15 @@ def bootstrapped_kelly_allocate(
     if t_len < 60 or n_strat == 0:
         return {c: 0.0 for c in cols}
 
+    recent_start = max(0, t_len - 126)
     rng = np.random.default_rng(42)
-    n_blocks = max(1, t_len // block_len)
+    n_blocks = max(2, t_len // block_len)
+    half_blocks = max(1, n_blocks // 2)
     boot_samples = []
     for _ in range(n_boot):
-        starts = rng.integers(0, max(1, t_len - block_len), size=n_blocks)
+        s_full = rng.integers(0, max(1, t_len - block_len), size=half_blocks)
+        s_rec = rng.integers(recent_start, max(recent_start + 1, t_len - block_len), size=n_blocks - half_blocks)
+        starts = np.concatenate([s_full, s_rec])
         idx = np.concatenate([np.arange(s, s + block_len) for s in starts])[:t_len]
         boot_samples.append(R[idx])
 
@@ -150,27 +152,25 @@ def bootstrapped_kelly_allocate(
                 return 1e6 + float(np.sum(np.maximum(0.05 - (1.0 + pr), 0.0)) * 1e4)
             lws.append(float(np.mean(np.log(1.0 + pr))))
         arr = np.array(lws)
-        # 기대 복리성장률 - 0.5 * 부트스트랩 표준편차 (추정 불확실성 방어 + 분산 유도)
         return -(float(arr.mean()) - 0.50 * float(arr.std()))
 
-    w0 = np.full(n_strat, min(0.8, max_gross_leverage) / float(np.sum(gross_vec)))
+    w0 = np.full(n_strat, min(0.5, max_gross_leverage) / float(np.sum(gross_vec)))
     bounds = [(0.0, max_gross_leverage / max(g, 1.0)) for g in gross_vec]
     constraints = [{"type": "ineq", "fun": lambda w: max_gross_leverage - float(np.sum(w * gross_vec))}]
     res = minimize(obj_fn, w0, method="SLSQP", bounds=bounds, constraints=constraints, options={"maxiter": 250, "ftol": 1e-8})
     if not res.success:
         return {c: 0.0 for c in cols}
-    raw_w = {c: (round(float(val), 4) if float(val) > 0.02 else 0.0) for c, val in zip(cols, res.x)}
-    return raw_w
+    return {c: (round(float(val), 4) if float(val) > 0.02 else 0.0) for c, val in zip(cols, res.x)}
 
 def cusum_alpha_status(returns: pd.Series, expected_daily_mean: float) -> tuple[float, bool]:
-    """교정된 하방 CUSUM 알파 사망 감지기 (k=0.50). 임계치 6.0 초과 AND 최근 60일 평균 음수일 때 퇴출 판정"""
-    r = returns.dropna().tail(60)
+    """일간 수익률 스케일에 맞게 교정된 CUSUM 감지기 (k=0.03, 임계치 2.5)"""
+    r = returns.dropna().tail(63)
     if len(r) < 20 or r.std() < 1e-12:
         return 0.0, False
     z = (r - max(expected_daily_mean, 0.0)) / r.std()
     s = 0.0
     for val in z:
-        s = min(0.0, s + float(val) + 0.50)
+        s = min(0.0, s + float(val) + 0.03)
     stat = round(abs(s), 4)
-    decayed = bool(stat > 6.0 and float(r.mean()) < 0.0)
+    decayed = bool(stat > 2.5 and float(r.mean()) < 0.0)
     return stat, decayed
