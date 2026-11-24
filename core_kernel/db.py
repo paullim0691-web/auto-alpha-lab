@@ -3,13 +3,11 @@ import os
 from datetime import datetime, timezone
 import psycopg
 
-
 def get_conn():
     dsn = os.environ.get("NEON_DATABASE_URL", "").strip()
     if not dsn:
         raise RuntimeError("NEON_DATABASE_URL is missing")
     return psycopg.connect(dsn)
-
 
 def init_schema():
     ddl = """
@@ -23,7 +21,6 @@ def init_schema():
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         UNIQUE (run_date, provider)
     );
-
     CREATE TABLE IF NOT EXISTS strategies (
         strategy_id TEXT PRIMARY KEY,
         origin TEXT NOT NULL,
@@ -31,7 +28,6 @@ def init_schema():
         status TEXT NOT NULL DEFAULT 'ACTIVE',
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-
     CREATE TABLE IF NOT EXISTS trials (
         trial_id BIGSERIAL PRIMARY KEY,
         strategy_id TEXT NOT NULL,
@@ -45,7 +41,6 @@ def init_schema():
         passed BOOLEAN NOT NULL,
         details JSONB NOT NULL
     );
-
     CREATE TABLE IF NOT EXISTS shadow_equity (
         id BIGSERIAL PRIMARY KEY,
         trade_date DATE NOT NULL,
@@ -56,19 +51,30 @@ def init_schema():
         cusum_stat DOUBLE PRECISION NOT NULL DEFAULT 0.0,
         UNIQUE (trade_date, strategy_id)
     );
-
-    CREATE TABLE IF NOT EXISTS macro_series (
-        obs_date DATE NOT NULL,
-        series_id TEXT NOT NULL,
-        value DOUBLE PRECISION NOT NULL,
-        PRIMARY KEY (obs_date, series_id)
+    CREATE TABLE IF NOT EXISTS failure_memory (
+        id BIGSERIAL PRIMARY KEY,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        strategy_id TEXT NOT NULL,
+        origin TEXT NOT NULL,
+        regime TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        lesson TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS paper_orders (
+        id BIGSERIAL PRIMARY KEY,
+        run_ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        symbol TEXT NOT NULL,
+        side TEXT NOT NULL,
+        qty DOUBLE PRECISION NOT NULL,
+        status TEXT NOT NULL,
+        order_id TEXT,
+        details JSONB NOT NULL
     );
     """
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(ddl)
         conn.commit()
-
 
 def record_quota(provider: str, calls: int = 0, tokens: int = 0, status: str = "OK"):
     today = datetime.now(timezone.utc).date()
@@ -86,6 +92,13 @@ def record_quota(provider: str, calls: int = 0, tokens: int = 0, status: str = "
             cur.execute(sql, (today, provider, calls, tokens, status))
         conn.commit()
 
+def get_today_quota(provider: str) -> int:
+    today = datetime.now(timezone.utc).date()
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT calls_used FROM quota_ledger WHERE run_date=%s AND provider=%s;", (today, provider))
+            row = cur.fetchone()
+            return int(row[0]) if row else 0
 
 def get_total_trials_count() -> int:
     with get_conn() as conn:
@@ -94,22 +107,16 @@ def get_total_trials_count() -> int:
             row = cur.fetchone()
             return int(row[0]) if row else 0
 
-
-def save_trial(
-    strategy_id: str,
-    origin: str,
-    spec: dict,
-    metrics: dict,
-    n_trials: int,
-    passed: bool,
-):
+def save_trial(strategy_id: str, origin: str, spec: dict, metrics: dict, n_trials: int, passed: bool):
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 INSERT INTO strategies (strategy_id, origin, spec_json, status)
                 VALUES (%s, %s, %s::jsonb, %s)
-                ON CONFLICT (strategy_id) DO NOTHING;
+                ON CONFLICT (strategy_id) DO UPDATE SET status = CASE
+                    WHEN strategies.status = 'RETIRED' THEN 'RETIRED'
+                    ELSE EXCLUDED.status END;
                 """,
                 (strategy_id, origin, json.dumps(spec), "ACTIVE" if passed else "REJECTED"),
             )
@@ -132,4 +139,57 @@ def save_trial(
                     json.dumps(metrics),
                 ),
             )
+        conn.commit()
+
+def get_active_strategies() -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT strategy_id, origin, spec_json, created_at FROM strategies WHERE status='ACTIVE';")
+            rows = cur.fetchall()
+            return [{"strategy_id": r[0], "origin": r[1], "spec": r[2], "created_at": r[3]} for r in rows]
+
+def retire_strategy(strategy_id: str):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE strategies SET status='RETIRED' WHERE strategy_id=%s;", (strategy_id,))
+        conn.commit()
+
+def record_failure(strategy_id: str, origin: str, regime: str, reason: str, lesson: str):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO failure_memory (strategy_id, origin, regime, reason, lesson) VALUES (%s, %s, %s, %s, %s);",
+                (strategy_id, origin, regime, reason[:300], lesson[:500]),
+            )
+        conn.commit()
+
+def get_recent_failures(limit: int = 10) -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT strategy_id, regime, reason, lesson FROM failure_memory ORDER BY id DESC LIMIT %s;", (limit,))
+            return [{"strategy_id": r[0], "regime": r[1], "reason": r[2], "lesson": r[3]} for r in cur.fetchall()]
+
+def upsert_shadow_equity(rows: list[tuple]):
+    if not rows:
+        return
+    sql = """
+    INSERT INTO shadow_equity (trade_date, strategy_id, nav, daily_return, gross_exposure, cusum_stat)
+    VALUES (%s, %s, %s, %s, %s, %s)
+    ON CONFLICT (trade_date, strategy_id) DO UPDATE SET
+        nav = EXCLUDED.nav, daily_return = EXCLUDED.daily_return,
+        gross_exposure = EXCLUDED.gross_exposure, cusum_stat = EXCLUDED.cusum_stat;
+    """
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.executemany(sql, rows)
+        conn.commit()
+
+def log_paper_orders(orders: list[dict]):
+    if not orders:
+        return
+    sql = "INSERT INTO paper_orders (symbol, side, qty, status, order_id, details) VALUES (%s, %s, %s, %s, %s, %s::jsonb);"
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            for o in orders:
+                cur.execute(sql, (o["symbol"], o["side"], float(o["qty"]), o["status"], o.get("order_id"), json.dumps(o)))
         conn.commit()
