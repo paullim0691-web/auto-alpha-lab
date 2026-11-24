@@ -36,13 +36,12 @@ def _call_gemini_json(prompt: str) -> dict | None:
     if not model:
         return None
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
-    payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"responseMimeType": "application/json", "temperature": 0.4}}
+    payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"responseMimeType": "application/json", "temperature": 0.5}}
     r = requests.post(url, json=payload, timeout=30)
     record_quota("gemini_calls", calls=1, status=f"HTTP_{r.status_code}")
     if r.status_code != 200:
         return None
-    txt = r.json()["candidates"][0]["content"]["parts"][0]["text"]
-    return json.loads(txt)
+    return json.loads(r.json()["candidates"][0]["content"]["parts"][0]["text"])
 
 def _call_groq_json(prompt: str) -> dict | None:
     key = os.environ.get("GROQ_API_KEY", "").strip()
@@ -98,28 +97,26 @@ def run_llm_research_cycle(ohlcv: dict, macro_df, sec_df, fred_latest: dict, reg
     top_lose = ret_20.nsmallest(5).round(3).to_dict()
     failures = get_recent_failures(8)
 
-    research_prompt = f"""You are a ruthless quantitative alpha researcher maximizing out-of-sample geometric wealth.
-Current market regime: {regime_tag}. Macro: {json.dumps(fred_latest)}.
-Recent 20d winners: {json.dumps(top_win)}. Losers: {json.dumps(top_lose)}.
-Avoid repeating these recent failures: {json.dumps(failures[:5])}.
-Generate 3 distinct candidate strategies in JSON:
-{{"hypotheses": [{{"rationale": "short reason", "spec": <DSL_JSON>}}]}}
-Allowed DSL kinds & keys:
-1) {{"kind":"cs_momentum","pool":"all|stocks|etfs","lookback":20..180,"skip":0..10,"top_pct":0.1..0.3,"allow_short":true|false,"max_pos_weight":0.2}}
-2) {{"kind":"ts_momentum","pool":"etfs|all","lookback":15..120,"vol_window":20..60,"allow_short":true|false,"max_pos_weight":0.3}}
-3) {{"kind":"mean_reversion","pool":"all|stocks","lookback":2..10,"trend_window":50..200,"top_pct":0.1..0.25,"allow_short":true|false,"max_pos_weight":0.2}}
-4) {{"kind":"macro_rotator","vix_thresh":18..32,"curve_thresh":-0.3..0.3,"mom_window":20..63,"risk_on_assets":["QQQ","QLD","SPY","SMH","NVDA"],"risk_off_assets":["TLT","GLD","UUP","SH","PSQ"],"max_pos_weight":0.5}}
-5) {{"kind":"pairs_reversion","lookback":15..60,"z_entry":1.2..2.2,"pairs":[["SMH","QQQ"],["XLE","USO"],["GLD","SLV"],["HYG","LQD"]],"max_pos_weight":0.25}}
-6) {{"kind":"sec_event_drift","pool":"stocks","mom_window":5..21,"top_pct":0.15..0.25,"max_pos_weight":0.2}}"""
+    research_prompt = f"""You are a ruthless quantitative alpha researcher maximizing out-of-sample geometric wealth across ALL regimes (including VIX > 30 selloffs).
+Current regime: {regime_tag}. Macro: {json.dumps(fred_latest)}.
+20d winners: {json.dumps(top_win)}. Losers: {json.dumps(top_lose)}.
+Avoid repeating recent failures: {json.dumps(failures[:5])}.
+IMPORTANT: Long-only equity momentum just lost -31% in the last 63 days. Propose 3 diverse hypotheses that can make positive money in BOTH bull markets AND VIX>30 selloffs (using macro_rotator with inverse/bond/gold/T-bill ETFs, pairs_reversion, or long/short ts_momentum).
+Return JSON: {{"hypotheses": [{{"rationale": "short reason", "spec": <DSL_JSON>}}]}}
+Allowed DSL kinds:
+1) {{"kind":"cs_momentum","pool":"all|stocks|etfs","lookback":20..126,"skip":0..10,"top_pct":0.1..0.25,"allow_short":true,"max_pos_weight":0.2}}
+2) {{"kind":"ts_momentum","pool":"etfs|all","lookback":15..90,"vol_window":15..45,"allow_short":true,"max_pos_weight":0.3}}
+3) {{"kind":"mean_reversion","pool":"all|stocks","lookback":2..8,"trend_window":50..200,"top_pct":0.1..0.2,"allow_short":true,"max_pos_weight":0.2}}
+4) {{"kind":"macro_rotator","vix_thresh":19..28,"curve_thresh":-0.2..0.2,"mom_window":15..63,"risk_on_assets":["QQQ","QLD","SPY","SMH","NVDA"],"risk_off_assets":["TLT","GLD","UUP","SHY","SH","PSQ","QID"],"max_pos_weight":0.5}}
+5) {{"kind":"pairs_reversion","lookback":15..60,"z_entry":1.2..2.0,"pairs":[["SMH","QQQ"],["XLE","USO"],["GLD","SLV"],["HYG","LQD"]],"max_pos_weight":0.25}}"""
 
     prop = _safe_llm_json(research_prompt, prefer="gemini")
     if not prop or not prop.get("hypotheses"):
         return {"status": "SKIPPED_OR_QUOTA_GUARD", "evaluated": []}
 
-    # 적대적 비평가(다른 모델 계열 Groq)로 과최적화·중복 사전 검열
-    critic_prompt = f"""You are an adversarial quant risk critic. Reject duplicated or overfit hypotheses.
+    critic_prompt = f"""You are a quantitative critic. Only reject hypotheses that are exact duplicates of recent failures or structurally invalid. Do NOT reject macro_rotator or pairs_reversion just for listing ETFs—let the backtest kernel decide.
 Recent failures: {json.dumps(failures[:5])}. Proposed: {json.dumps(prop)}.
-Return JSON: {{"approved_indices": [0, 1], "critique": "brief summary"}}"""
+Return JSON: {{"approved_indices": [0, 1, 2], "critique": "brief summary"}}"""
     critique = _safe_llm_json(critic_prompt, prefer="groq")
     approved = critique.get("approved_indices", [0, 1, 2]) if critique else [0, 1, 2]
 
