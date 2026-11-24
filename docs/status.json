@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-11-24T12:27:22.107058+00:00",
+  "updated_at_utc": "2026-11-24T12:55:02.322337+00:00",
   "phase": "PHASE_2_AUTONOMOUS_LIVE",
   "regime": "HIGH_VOL_POS_CURVE",
   "data_meta": {
@@ -35,267 +35,69 @@
   },
   "llm_research": {
     "status": "OK",
-    "critique": "The first two ideas (stock cs_momentum and ETF ts_momentum) are novel relative to recent failures and rely on simple, well\u2011understood signals. The macro_rotator adds many asset selections and tight threshold parameters, risking over\u2011fitting to the HIGH_VOL_POS_CURVE regime, so it is not approved.",
+    "critique": "All three hypotheses are structurally valid and not exact duplicates of recent failures; they introduce new parameterizations for pairs_reversion, macro_rotator, and cs_momentum, so they are approved for backtesting.",
     "evaluated": [
       {
-        "strategy_id": "llm__cs_momen_78b7aa69",
-        "log_wealth": -0.04658094232786824,
-        "cagr": -0.02048981259562932,
-        "sharpe": -0.047713178542516985,
-        "deflated_sharpe": 9.610121445259535e-258,
-        "max_drawdown": -0.19575484657281206,
-        "avg_gross_exposure": 0.99901995527309,
-        "pre_log_wealth": -0.04750204892875017,
-        "lockbox_log_wealth": 0.0009211066008820674,
-        "lockbox_cagr": 0.0036912222461873423,
+        "strategy_id": "llm__pairs_re_996d8aa4",
+        "log_wealth": -0.058172324337576437,
+        "cagr": -0.025523004104599956,
+        "sharpe": -0.5797510578975581,
+        "deflated_sharpe": 2.0229851083784565e-84,
+        "max_drawdown": -0.07557246521017935,
+        "avg_gross_exposure": 0.291520979020979,
+        "pre_log_wealth": -0.04320588651813174,
+        "lockbox_log_wealth": -0.014966437819444794,
+        "lockbox_cagr": -0.05810902724352596,
         "plateau_ok": false,
         "passed": false,
-        "rationale": "Capture strong stock momentum while allowing short exposure to hedge tail risk in a high\u2011volatility, upward\u2011sloping yield curve environment."
+        "rationale": "Pairs\u2011reversion between tightly linked ETFs reverts quickly during spikes in volatility, delivering market\u2011neutral alpha in both bull runs and VIX>30 sell\u2011offs"
       },
       {
-        "strategy_id": "llm__ts_momen_c9d1d833",
-        "log_wealth": -0.05883122926089548,
-        "cagr": -0.025808334630299745,
-        "sharpe": -0.35619338284755503,
-        "deflated_sharpe": 0.0,
-        "max_drawdown": -0.11991774103686414,
-        "avg_gross_exposure": 0.8913434661783278,
-        "pre_log_wealth": 0.024094923984800676,
-        "lockbox_log_wealth": -0.08292615324569638,
-        "lockbox_cagr": -0.2823007094006509,
+        "strategy_id": "llm__macro_ro_6f577159",
+        "log_wealth": -0.0291047191195938,
+        "cagr": -0.012852127609920605,
+        "sharpe": 0.040224795668429035,
+        "deflated_sharpe": 1.1770748532725746e-94,
+        "max_drawdown": -0.3224246182517424,
+        "avg_gross_exposure": 0.8557692307692307,
+        "pre_log_wealth": 0.06932867900866573,
+        "lockbox_log_wealth": -0.09843339812825876,
+        "lockbox_cagr": -0.3254662668575349,
         "plateau_ok": true,
         "passed": false,
-        "rationale": "Leverage ETF momentum with a volatility filter to stay long during periods of elevated VIX, avoiding short\u2011side volatility spikes."
+        "rationale": "Macro\u2011rotator that flips to classic risk\u2011off assets when VIX breaches 30 and the yield curve is steep (positive) captures safe\u2011haven flows in crashes while staying long growth ETFs in calm markets"
+      },
+      {
+        "strategy_id": "llm__cs_momen_e8d9ced5",
+        "log_wealth": -0.16888105278736276,
+        "cagr": -0.07231054915102775,
+        "sharpe": -0.423655080446664,
+        "deflated_sharpe": 8.973423854570019e-220,
+        "max_drawdown": -0.20890776868766425,
+        "avg_gross_exposure": 0.999355674530354,
+        "pre_log_wealth": -0.1573972424914982,
+        "lockbox_log_wealth": -0.011483810295864759,
+        "lockbox_cagr": -0.044896188419441874,
+        "plateau_ok": false,
+        "passed": false,
+        "rationale": "Cross\u2011sectional momentum on ETFs with short\u2011selling lets the model go long the strongest trends and short the weakest, generating positive expectancy in rising markets and during high\u2011volatility sell\u2011offs"
       }
     ]
   },
   "paper_execution": {
     "trade_date": "2026-11-23",
     "account_equity": 100000.0,
-    "target_gross_leverage": 1.8,
-    "target_net_exposure": 1.8,
-    "kelly_weights": {
-      "bench_spy_hold": 0.0,
-      "bench_cs_momentum": 1.8,
-      "bench_st_reversal": 0.0
-    },
-    "surviving_strategies": [
-      {
-        "strategy_id": "bench_spy_hold",
-        "origin": "phase1_benchmark",
-        "cusum": 0.5316,
-        "log_wealth": 0.28274244952076727,
-        "cagr": 0.1339003321221499,
-        "sharpe": 0.8253170788908151,
-        "deflated_sharpe": 1.0,
-        "max_drawdown": -0.18754263088722178,
-        "avg_gross_exposure": 1.0,
-        "pre_log_wealth": 0.338896607308783,
-        "lockbox_log_wealth": -0.056154157788015434,
-        "lockbox_cagr": -0.20117759631064525
-      },
-      {
-        "strategy_id": "bench_cs_momentum",
-        "origin": "phase1_benchmark",
-        "cusum": 0.9948,
-        "log_wealth": 0.48051518107241264,
-        "cagr": 0.23808063162999726,
-        "sharpe": 0.9770519127747422,
-        "deflated_sharpe": 1.0,
-        "max_drawdown": -0.2849065417702704,
-        "avg_gross_exposure": 1.0,
-        "pre_log_wealth": 0.5734145815285825,
-        "lockbox_log_wealth": -0.09289940045617039,
-        "lockbox_cagr": -0.3103683067673523
-      },
-      {
-        "strategy_id": "bench_st_reversal",
-        "origin": "phase1_benchmark",
-        "cusum": 0.3799,
-        "log_wealth": 0.3104994654106283,
-        "cagr": 0.1479752775206431,
-        "sharpe": 0.5753284967437382,
-        "deflated_sharpe": 1.0,
-        "max_drawdown": -0.2965161123538279,
-        "avg_gross_exposure": 0.9986888111888111,
-        "pre_log_wealth": 0.4791253841383795,
-        "lockbox_log_wealth": -0.1686259187277504,
-        "lockbox_cagr": -0.4905908095638638
-      }
+    "target_gross_leverage": 0.0,
+    "target_net_exposure": 0.0,
+    "kelly_weights": {},
+    "surviving_strategies": [],
+    "retired_now": [
+      "bench_spy_hold",
+      "bench_cs_momentum",
+      "bench_st_reversal"
     ],
-    "retired_now": [],
-    "orders_submitted": [
-      {
-        "symbol": "AAPL",
-        "side": "buy",
-        "qty": 36.0,
-        "status": "pending_new",
-        "order_id": "ae4ea59b-0720-4f4a-a0d8-66a4ce16c2fb"
-      },
-      {
-        "symbol": "ABNB",
-        "side": "buy",
-        "qty": 37.0,
-        "status": "pending_new",
-        "order_id": "88f731c5-c077-4915-af22-d31f6e640ed6"
-      },
-      {
-        "symbol": "ANET",
-        "side": "buy",
-        "qty": 24.0,
-        "status": "pending_new",
-        "order_id": "af0c76c0-acdf-42cd-b763-d2c9706bd0ca"
-      },
-      {
-        "symbol": "COST",
-        "side": "buy",
-        "qty": 13.0,
-        "status": "pending_new",
-        "order_id": "c9b07943-8582-454b-9220-ca91b723365e"
-      },
-      {
-        "symbol": "CRWD",
-        "side": "buy",
-        "qty": 17.0,
-        "status": "pending_new",
-        "order_id": "1f2e0867-ae88-4242-a14e-bb5b9e778080"
-      },
-      {
-        "symbol": "CVX",
-        "side": "buy",
-        "qty": 56.0,
-        "status": "pending_new",
-        "order_id": "af7fc20a-3a8b-4637-b342-f24976d4eba8"
-      },
-      {
-        "symbol": "DE",
-        "side": "buy",
-        "qty": 15.0,
-        "status": "pending_new",
-        "order_id": "fe77362c-7cae-4434-b3dc-4d4640826aea"
-      },
-      {
-        "symbol": "DIS",
-        "side": "buy",
-        "qty": 97.0,
-        "status": "pending_new",
-        "order_id": "1249ef69-ee26-412c-8c65-85b935a069a0"
-      },
-      {
-        "symbol": "LLY",
-        "side": "buy",
-        "qty": 6.0,
-        "status": "pending_new",
-        "order_id": "a20ab0cb-5b3c-4c33-a735-dfa3165a83de"
-      },
-      {
-        "symbol": "MSFT",
-        "side": "buy",
-        "qty": 20.0,
-        "status": "pending_new",
-        "order_id": "58afc18e-a96f-473a-9ba4-81947cd9df83"
-      },
-      {
-        "symbol": "NET",
-        "side": "buy",
-        "qty": 13.0,
-        "status": "pending_new",
-        "order_id": "1a24f4bc-f2f5-4699-a3a3-a49c39b8e0bd"
-      },
-      {
-        "symbol": "PANW",
-        "side": "buy",
-        "qty": 11.0,
-        "status": "pending_new",
-        "order_id": "a0733df3-15d4-4815-b60e-4beb33330000"
-      },
-      {
-        "symbol": "PLTR",
-        "side": "buy",
-        "qty": 32.0,
-        "status": "pending_new",
-        "order_id": "13f0a25b-4faa-43f7-a696-4cf1c909860e"
-      },
-      {
-        "symbol": "PSQ",
-        "side": "buy",
-        "qty": 343.0,
-        "status": "pending_new",
-        "order_id": "6bbf1d17-3288-4402-b66f-f5a801c4c41c"
-      },
-      {
-        "symbol": "QID",
-        "side": "buy",
-        "qty": 73.0,
-        "status": "pending_new",
-        "order_id": "4653dc13-5983-4571-9178-230e4e5b1995"
-      },
-      {
-        "symbol": "REGN",
-        "side": "buy",
-        "qty": 7.0,
-        "status": "pending_new",
-        "order_id": "4fdb5528-b82c-4c98-af24-377d22de3725"
-      },
-      {
-        "symbol": "RTX",
-        "side": "buy",
-        "qty": 61.0,
-        "status": "pending_new",
-        "order_id": "3649cb87-1c60-44d5-af14-2ed735debeda"
-      },
-      {
-        "symbol": "SNOW",
-        "side": "buy",
-        "qty": 17.0,
-        "status": "pending_new",
-        "order_id": "38cdc3ac-8a87-49d2-99c4-685bc071da7b"
-      },
-      {
-        "symbol": "VRTX",
-        "side": "buy",
-        "qty": 19.0,
-        "status": "pending_new",
-        "order_id": "ab3cd99a-940e-4109-8ab0-a6827cfcea1f"
-      },
-      {
-        "symbol": "XBI",
-        "side": "buy",
-        "qty": 57.0,
-        "status": "pending_new",
-        "order_id": "e001675f-1c17-4755-b754-96516653f02f"
-      },
-      {
-        "symbol": "XLV",
-        "side": "buy",
-        "qty": 85.0,
-        "status": "pending_new",
-        "order_id": "e3561f44-47cd-4628-b50b-8ef5235388b7"
-      }
-    ],
+    "orders_submitted": [],
     "current_positions": {},
-    "top_targets": {
-      "AAPL": 0.1266,
-      "ABNB": 0.0659,
-      "ANET": 0.0433,
-      "COST": 0.1491,
-      "CRWD": 0.0368,
-      "CVX": 0.1164,
-      "DE": 0.0952,
-      "DIS": 0.1167,
-      "LLY": 0.0953,
-      "MSFT": 0.1004,
-      "NET": 0.0387,
-      "PANW": 0.0413,
-      "PLTR": 0.0511,
-      "PSQ": 0.096,
-      "QID": 0.0478,
-      "REGN": 0.0708,
-      "RTX": 0.1192,
-      "SNOW": 0.0464,
-      "VRTX": 0.1048,
-      "XBI": 0.0841,
-      "XLV": 0.154
-    }
+    "top_targets": {}
   }
 }
