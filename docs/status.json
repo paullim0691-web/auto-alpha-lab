@@ -1,36 +1,36 @@
 {
-  "updated_at_utc": "2026-11-22T12:32:39.190846+00:00",
+  "updated_at_utc": "2026-11-24T05:25:30.527770+00:00",
   "phase": "PHASE_1_ACTIVE",
   "alpaca_paper": {
     "status": "AccountStatus.ACTIVE",
     "equity": 100000.0,
     "buying_power": 200000.0,
-    "tradable_us_equities": 13509
+    "tradable_us_equities": 13529
   },
   "data_meta": {
     "feed_used": "SIP_DELAYED",
     "valid_symbols": 62,
     "quarantined": [],
-    "start_date": "2023-08-11",
-    "end_date": "2026-11-20",
+    "start_date": "2023-08-14",
+    "end_date": "2026-11-23",
     "trading_days": 824
   },
   "fred_latest": {
     "DFF": {
-      "date": "2026-11-19",
+      "date": "2026-11-20",
       "value": 3.88
     },
     "DGS10": {
-      "date": "2026-11-19",
-      "value": 5.04
+      "date": "2026-11-20",
+      "value": 4.92
     },
     "DGS2": {
-      "date": "2026-11-19",
-      "value": 4.76
+      "date": "2026-11-20",
+      "value": 4.63
     },
     "VIXCLS": {
-      "date": "2026-11-19",
-      "value": 28.44
+      "date": "2026-11-20",
+      "value": 35.89
     }
   },
   "llm_health": {
@@ -47,41 +47,41 @@
     "groq": {
       "ok": true,
       "sample_models": [
+        "canopylabs/orpheus-v1-english",
         "whisper-large-v3-turbo",
+        "qwen/qwen3.8-27b",
         "allam-2-7b",
-        "meta-llama/llama-prompt-guard-2-22m",
-        "openai/gpt-oss-safeguard-20b",
-        "meta-llama/llama-prompt-guard-2-86m"
+        "openai/gpt-oss-20b"
       ]
     }
   },
   "benchmark_oos_eval": {
     "bench_spy_hold": {
-      "log_wealth": 0.23509843411868447,
-      "cagr": 0.11014228627407108,
-      "sharpe": 0.7096313987390388,
-      "deflated_sharpe": 1.0,
-      "max_drawdown": -0.18754263088722167,
+      "log_wealth": 0.28274244952076727,
+      "cagr": 0.1339003321221499,
+      "sharpe": 0.8253170788908151,
+      "deflated_sharpe": 0.9324714582853675,
+      "max_drawdown": -0.18754263088722178,
       "passed": true,
-      "cusum_decay": 7.28
+      "cusum_decay": 2.1875
     },
     "bench_cs_momentum": {
-      "log_wealth": 0.5292143091736847,
-      "cagr": 0.26516982177634696,
-      "sharpe": 1.1528310554845562,
-      "deflated_sharpe": 1.0,
-      "max_drawdown": -0.2505392109276786,
+      "log_wealth": 0.5298600978706789,
+      "cagr": 0.26553299939104513,
+      "sharpe": 1.1541284264904967,
+      "deflated_sharpe": 0.9999985755951935,
+      "max_drawdown": -0.2505396203542982,
       "passed": true,
-      "cusum_decay": 8.1755
+      "cusum_decay": 8.456
     },
     "bench_st_reversal": {
-      "log_wealth": 0.6048454513394316,
-      "cagr": 0.3084198667828728,
-      "sharpe": 0.9424369910301071,
-      "deflated_sharpe": 0.9999999681111966,
-      "max_drawdown": -0.2849630150120701,
+      "log_wealth": 0.6326275713780514,
+      "cagr": 0.324675878483472,
+      "sharpe": 0.9773468725113175,
+      "deflated_sharpe": 0.940394194841583,
+      "max_drawdown": -0.28496301501207044,
       "passed": true,
-      "cusum_decay": 6.1259
+      "cusum_decay": 4.9508
     }
   },
   "shrinkage_kelly_weights": {
