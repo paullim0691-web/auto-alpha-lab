@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-11-24T12:55:02.322337+00:00",
+  "updated_at_utc": "2026-11-25T03:05:15.425906+00:00",
   "phase": "PHASE_2_AUTONOMOUS_LIVE",
   "regime": "HIGH_VOL_POS_CURVE",
   "data_meta": {
@@ -7,95 +7,91 @@
     "valid_symbols": 100,
     "quarantined": [],
     "start_date": "2023-08-14",
-    "end_date": "2026-11-23",
-    "trading_days": 824
+    "end_date": "2026-11-24",
+    "trading_days": 825
   },
   "fred_latest": {
     "DFF": {
-      "date": "2026-11-20",
+      "date": "2026-11-23",
       "value": 3.88
     },
     "DGS10": {
-      "date": "2026-11-20",
+      "date": "2026-11-23",
       "value": 4.92
     },
     "DGS2": {
-      "date": "2026-11-20",
+      "date": "2026-11-23",
       "value": 4.63
     },
     "VIXCLS": {
-      "date": "2026-11-20",
-      "value": 35.89
+      "date": "2026-11-23",
+      "value": 26.62
     }
   },
   "evolution_summary": {
-    "tested": 24,
+    "tested": 80,
     "passed": 0,
     "winners": []
   },
   "llm_research": {
     "status": "OK",
-    "critique": "All three hypotheses are structurally valid and not exact duplicates of recent failures; they introduce new parameterizations for pairs_reversion, macro_rotator, and cs_momentum, so they are approved for backtesting.",
+    "critique": "All three proposals avoid the HIGH_VOL_POS_CURVE pitfalls of prior failures: the dual\u2011momentum ideas add inverse exposure or a GLD hedge, while the macro rotator uses VIX\u2011driven risk\u2011on/off switches, providing diversified, volatility\u2011aware positioning.",
     "evaluated": [
       {
-        "strategy_id": "llm__pairs_re_996d8aa4",
-        "log_wealth": -0.058172324337576437,
-        "cagr": -0.025523004104599956,
-        "sharpe": -0.5797510578975581,
-        "deflated_sharpe": 2.0229851083784565e-84,
-        "max_drawdown": -0.07557246521017935,
-        "avg_gross_exposure": 0.291520979020979,
-        "pre_log_wealth": -0.04320588651813174,
-        "lockbox_log_wealth": -0.014966437819444794,
-        "lockbox_cagr": -0.05810902724352596,
-        "plateau_ok": false,
-        "passed": false,
-        "rationale": "Pairs\u2011reversion between tightly linked ETFs reverts quickly during spikes in volatility, delivering market\u2011neutral alpha in both bull runs and VIX>30 sell\u2011offs"
-      },
-      {
-        "strategy_id": "llm__macro_ro_6f577159",
-        "log_wealth": -0.0291047191195938,
-        "cagr": -0.012852127609920605,
-        "sharpe": 0.040224795668429035,
-        "deflated_sharpe": 1.1770748532725746e-94,
-        "max_drawdown": -0.3224246182517424,
-        "avg_gross_exposure": 0.8557692307692307,
-        "pre_log_wealth": 0.06932867900866573,
-        "lockbox_log_wealth": -0.09843339812825876,
-        "lockbox_cagr": -0.3254662668575349,
+        "strategy_id": "llm__dual_mom_6a06abfb",
+        "log_wealth": 0.41887985229186453,
+        "cagr": 0.20423084619466358,
+        "sharpe": 0.9152220307084548,
+        "deflated_sharpe": 0.023426683516140946,
+        "max_drawdown": -0.20450634675112112,
+        "avg_gross_exposure": 0.9931646305991857,
+        "pre_log_wealth": 0.49322993485765054,
+        "lockbox_log_wealth": -0.07435008256578557,
+        "lockbox_cagr": -0.2572533911092785,
         "plateau_ok": true,
         "passed": false,
-        "rationale": "Macro\u2011rotator that flips to classic risk\u2011off assets when VIX breaches 30 and the yield curve is steep (positive) captures safe\u2011haven flows in crashes while staying long growth ETFs in calm markets"
+        "rationale": "Dual momentum picks the top\u2011performing equities and flips to inverse ETFs when overall momentum turns negative, keeping upside in bull markets while protecting on downturns"
       },
       {
-        "strategy_id": "llm__cs_momen_e8d9ced5",
-        "log_wealth": -0.16888105278736276,
-        "cagr": -0.07231054915102775,
-        "sharpe": -0.423655080446664,
-        "deflated_sharpe": 8.973423854570019e-220,
-        "max_drawdown": -0.20890776868766425,
-        "avg_gross_exposure": 0.999355674530354,
-        "pre_log_wealth": -0.1573972424914982,
-        "lockbox_log_wealth": -0.011483810295864759,
-        "lockbox_cagr": -0.044896188419441874,
-        "plateau_ok": false,
+        "strategy_id": "llm__macro_ro_7d1f76ca",
+        "log_wealth": -0.041284676482920675,
+        "cagr": -0.018149714467098677,
+        "sharpe": 0.1040043132735774,
+        "deflated_sharpe": 1.1998122322440178e-111,
+        "max_drawdown": -0.3793205593331709,
+        "avg_gross_exposure": 0.8568935427574171,
+        "pre_log_wealth": 0.19040409685092816,
+        "lockbox_log_wealth": -0.231688773333849,
+        "lockbox_cagr": -0.6041639202047421,
+        "plateau_ok": true,
         "passed": false,
-        "rationale": "Cross\u2011sectional momentum on ETFs with short\u2011selling lets the model go long the strongest trends and short the weakest, generating positive expectancy in rising markets and during high\u2011volatility sell\u2011offs"
+        "rationale": "Macro rotator stays long risk\u2011on assets (QQQ, QLD, SPY, SMH, NVDA) in calm markets and rotates to defensive assets (SHY, GLD, UUP, SH, PSQ, QID) when VIX spikes or SPY trend weakens"
+      },
+      {
+        "strategy_id": "llm__dual_mom_dda948c6",
+        "log_wealth": 0.2557742026271834,
+        "cagr": 0.12016644635376506,
+        "sharpe": 0.5904572499341804,
+        "deflated_sharpe": 1.4149257683363325e-10,
+        "max_drawdown": -0.24555861327617523,
+        "avg_gross_exposure": 0.7999999999999999,
+        "pre_log_wealth": 0.3592891258916436,
+        "lockbox_log_wealth": -0.10351492326445962,
+        "lockbox_cagr": -0.3390385047244667,
+        "plateau_ok": true,
+        "passed": false,
+        "rationale": "A tighter dual\u2011momentum screen with a longer lookback focuses on a concentrated core of high\u2011conviction stocks and adds a static GLD hedge when VIX exceeds the threshold"
       }
     ]
   },
   "paper_execution": {
-    "trade_date": "2026-11-23",
+    "trade_date": "2026-11-24",
     "account_equity": 100000.0,
     "target_gross_leverage": 0.0,
     "target_net_exposure": 0.0,
     "kelly_weights": {},
     "surviving_strategies": [],
-    "retired_now": [
-      "bench_spy_hold",
-      "bench_cs_momentum",
-      "bench_st_reversal"
-    ],
+    "retired_now": [],
     "orders_submitted": [],
     "current_positions": {},
     "top_targets": {}
