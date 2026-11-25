@@ -101,9 +101,10 @@ def get_today_quota(provider: str) -> int:
             return int(row[0]) if row else 0
 
 def get_total_trials_count() -> int:
+    # 최근 30일 탐색 횟수 기준 다중검정 페널티 유지 (오래된 실패가 영구적으로 연구소를 마비시키지 않도록 방지)
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT COUNT(*) FROM trials;")
+            cur.execute("SELECT COUNT(*) FROM trials WHERE run_ts > NOW() - INTERVAL '30 days';")
             row = cur.fetchone()
             return int(row[0]) if row else 0
 
@@ -128,15 +129,9 @@ def save_trial(strategy_id: str, origin: str, spec: dict, metrics: dict, n_trial
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb);
                 """,
                 (
-                    strategy_id,
-                    float(metrics["log_wealth"]),
-                    float(metrics["cagr"]),
-                    float(metrics["sharpe"]),
-                    float(metrics["deflated_sharpe"]),
-                    float(metrics["max_drawdown"]),
-                    int(n_trials),
-                    bool(passed),
-                    json.dumps(metrics),
+                    strategy_id, float(metrics["log_wealth"]), float(metrics["cagr"]),
+                    float(metrics["sharpe"]), float(metrics["deflated_sharpe"]),
+                    float(metrics["max_drawdown"]), int(n_trials), bool(passed), json.dumps(metrics),
                 ),
             )
         conn.commit()
@@ -145,8 +140,7 @@ def get_active_strategies() -> list[dict]:
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT strategy_id, origin, spec_json, created_at FROM strategies WHERE status='ACTIVE';")
-            rows = cur.fetchall()
-            return [{"strategy_id": r[0], "origin": r[1], "spec": r[2], "created_at": r[3]} for r in rows]
+            return [{"strategy_id": r[0], "origin": r[1], "spec": r[2], "created_at": r[3]} for r in cur.fetchall()]
 
 def retire_strategy(strategy_id: str):
     with get_conn() as conn:
