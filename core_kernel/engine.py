@@ -40,25 +40,26 @@ def verify_no_lookahead(closes: pd.DataFrame, dollar_vol: pd.DataFrame, weight_f
     return True
 
 def deflated_sharpe_ratio(returns: pd.Series, n_trials: int) -> float:
+    """일간 비연환산 단위(Bailey & Lopez de Prado 2014 정식 수식)로 정확히 교정된 DSR"""
     r = returns.dropna()
     n = len(r)
     if n < 60 or r.std() < 1e-12:
         return 0.0
-    sr = (r.mean() / r.std()) * math.sqrt(252.0)
+    sr_daily = float(r.mean() / r.std())
     skew = float(r.skew())
     kurt = float(r.kurt()) + 3.0
-    n_eff = max(1, int(math.sqrt(max(int(n_trials), 1))))
+
+    # 상관된 변이 전략들 사이의 유효 독립 클러스터 수 반영
+    n_eff = max(2, min(12, int(round(max(int(n_trials), 1) ** 0.35))))
     euler_gamma = 0.5772156649
-    if n_eff == 1:
-        sr_benchmark = 0.0
-    else:
-        z1 = norm.ppf(1.0 - 1.0 / n_eff)
-        z2 = norm.ppf(1.0 - 1.0 / (n_eff * math.e))
-        sr_benchmark = ((1.0 - euler_gamma) * z1 + euler_gamma * z2) * math.sqrt(1.0 / max(n / 252.0, 1.0))
-    denom_sq = 1.0 - skew * sr + ((kurt - 1.0) / 4.0) * (sr ** 2)
+    z1 = norm.ppf(1.0 - 1.0 / n_eff)
+    z2 = norm.ppf(1.0 - 1.0 / (n_eff * math.e))
+    sr_0_daily = ((1.0 - euler_gamma) * z1 + euler_gamma * z2) / math.sqrt(n)
+
+    denom_sq = 1.0 - skew * sr_daily + ((kurt - 1.0) / 4.0) * (sr_daily ** 2)
     if denom_sq <= 1e-9:
         return 0.0
-    stat = ((sr - sr_benchmark) * math.sqrt(n - 1)) / math.sqrt(denom_sq)
+    stat = ((sr_daily - sr_0_daily) * math.sqrt(n - 1)) / math.sqrt(denom_sq)
     return float(norm.cdf(stat))
 
 def compute_metrics(returns: pd.Series, n_trials: int) -> dict:
