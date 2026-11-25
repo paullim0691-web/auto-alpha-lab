@@ -1,5 +1,5 @@
 # AutoAlphaLab — Autonomous Quant & Paper Trading Fund
-- **Updated (UTC):** `2026-11-25T03:05:15.425906+00:00` | **Regime:** `HIGH_VOL_POS_CURVE`
+- **Updated (UTC):** `2026-11-25T03:08:19.849924+00:00` | **Regime:** `HIGH_VOL_POS_CURVE`
 - **Alpaca Paper Equity:** **`$100,000.00`** (`+0.00%` vs $100k start) | **Gross Leverage:** `0.0x` | **Net Exposure:** `0.0x`
 - **Research Cycle:** Math Evo `0/80` passed | LLM Status: `OK` | Retired Today: `[]`
 
