@@ -20,7 +20,7 @@ def simulate_weights(
     turnover = (exec_w - exec_w.shift(1).fillna(0.0)).abs()
     trade_dollars = turnover * portfolio_notional
     dv_safe = dollar_vol.reindex_like(closes).replace(0.0, np.nan)
-    impact_bps = (10.0 * np.sqrt((trade_dollars / dv_safe).fillna(0.0).clip(upper=0.05))) * 100.0
+    impact_bps = 150.0 * np.sqrt((trade_dollars / dv_safe).fillna(0.0).clip(upper=0.05))
     total_cost = (turnover * ((base_cost_bps + impact_bps) * 1e-4)).sum(axis=1)
 
     short_exposure = exec_w.clip(upper=0.0).abs().sum(axis=1)
@@ -47,7 +47,6 @@ def deflated_sharpe_ratio(returns: pd.Series, n_trials: int) -> float:
     sr = (r.mean() / r.std()) * math.sqrt(252.0)
     skew = float(r.skew())
     kurt = float(r.kurt()) + 3.0
-    # 동일 계열 변이 탐색의 상관성을 반영한 유효 독립 시행 수 (sqrt(n_trials))
     n_eff = max(1, int(math.sqrt(max(int(n_trials), 1))))
     euler_gamma = 0.5772156649
     if n_eff == 1:
@@ -119,11 +118,6 @@ def bootstrapped_kelly_allocate(
     n_boot: int = 50,
     block_len: int = 15,
 ) -> dict:
-    """
-    국면 가중 블록 부트스트랩 켈리 최적화:
-    전체 기간(50%) + 최근 126거래일 국면(50%)을 함께 반영해
-    최근 깨지고 있는 전략에 1.8x 몰빵하는 현상을 자동 차단하고 실제 현 국면 승자에게 자본 배분.
-    """
     cols = list(strategy_oos_returns.columns)
     R = strategy_oos_returns.dropna().values
     t_len, n_strat = R.shape
@@ -163,7 +157,6 @@ def bootstrapped_kelly_allocate(
     return {c: (round(float(val), 4) if float(val) > 0.02 else 0.0) for c, val in zip(cols, res.x)}
 
 def cusum_alpha_status(returns: pd.Series, expected_daily_mean: float) -> tuple[float, bool]:
-    """일간 수익률 스케일에 맞게 교정된 CUSUM 감지기 (k=0.03, 임계치 2.5)"""
     r = returns.dropna().tail(63)
     if len(r) < 20 or r.std() < 1e-12:
         return 0.0, False
