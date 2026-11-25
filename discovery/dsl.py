@@ -16,7 +16,7 @@ ALLOWED_KINDS = {
     "pairs_reversion", "sec_event_drift", "composite",
 }
 
-def _normalize_weights(w: pd.DataFrame, max_pos: float = 0.35) -> pd.DataFrame:
+def _normalize_weights(w: pd.DataFrame, max_pos: float = 0.40) -> pd.DataFrame:
     clipped = w.clip(lower=-max_pos, upper=max_pos).fillna(0.0)
     gross = clipped.abs().sum(axis=1)
     scale = np.where(gross > 1.0, 1.0 / gross.replace(0.0, np.nan), 1.0)
@@ -54,33 +54,37 @@ def perturb_spec(spec: dict, factor: float) -> dict:
             leg["spec"] = perturb_spec(leg["spec"], factor)
     return s
 
-def _pick_defensive(closes: pd.DataFrame, dt, pool: list[str], mom_w: int) -> str:
+def _pick_defensive_series(closes: pd.DataFrame, pool: list[str], mom_w: int, pure_shy: bool = False) -> np.ndarray:
+    fallback = "SHY" if "SHY" in closes.columns else ""
+    if pure_shy:
+        return np.full(len(closes), fallback, dtype=object)
     avail = [a for a in pool if a in closes.columns]
     if not avail:
-        return "SHY" if "SHY" in closes.columns else closes.columns[0]
-    mom = closes[avail].pct_change(mom_w, fill_method=None).loc[dt].dropna()
-    pos = mom[mom > 0]
-    if len(pos) > 0:
-        return str(pos.idxmax())
-    return "SHY" if "SHY" in closes.columns else avail[0]
+        return np.full(len(closes), fallback, dtype=object)
+    arr = closes[avail].pct_change(mom_w, fill_method=None).fillna(-np.inf).values
+    best_idx = np.argmax(arr, axis=1)
+    best_vals = arr[np.arange(len(arr)), best_idx]
+    avail_arr = np.array(avail, dtype=object)
+    return np.where(best_vals > 0.0, avail_arr[best_idx], fallback)
 
 def dsl_to_weight_fn(spec: dict, macro_df: pd.DataFrame = None, sec_df: pd.DataFrame = None):
     def weight_fn(closes: pd.DataFrame, dollar_vol: pd.DataFrame) -> pd.DataFrame:
         kind = spec.get("kind") or spec.get("type")
-        max_pos = float(spec.get("max_pos_weight", 0.35))
+        max_pos = float(spec.get("max_pos_weight", 0.40))
         cols = _filter_cols(closes, spec.get("pool", "all"))
         sub_c = closes[cols]
-        w = pd.DataFrame(0.0, index=closes.index, columns=closes.columns)
+        w_arr = np.zeros((len(closes), len(closes.columns)), dtype=float)
+        col_idx = {c: i for i, c in enumerate(closes.columns)}
 
         if kind == "seed_benchmark":
             name = spec.get("name")
-            if name == "bench_spy_hold" and "SPY" in closes.columns:
-                w["SPY"] = 1.0
-                return w
+            if name == "bench_spy_hold" and "SPY" in col_idx:
+                w_arr[:, col_idx["SPY"]] = 1.0
+                return pd.DataFrame(w_arr, index=closes.index, columns=closes.columns)
             if name == "bench_cs_momentum":
-                return dsl_to_weight_fn({"kind": "cs_momentum", "lookback": 126, "skip": 0, "top_pct": 0.2, "allow_short": False, "max_pos_weight": 0.25})(closes, dollar_vol)
+                return dsl_to_weight_fn({"kind": "cs_momentum", "lookback": 126, "skip": 0, "top_pct": 0.2, "max_pos_weight": 0.25})(closes, dollar_vol)
             if name == "bench_st_reversal":
-                return dsl_to_weight_fn({"kind": "mean_reversion", "lookback": 5, "trend_window": 200, "top_pct": 0.15, "allow_short": False, "max_pos_weight": 0.25})(closes, dollar_vol)
+                return dsl_to_weight_fn({"kind": "mean_reversion", "lookback": 5, "trend_window": 200, "top_pct": 0.15, "max_pos_weight": 0.25})(closes, dollar_vol)
 
         elif kind in ("cs_momentum", "regime_cs_momentum"):
             lb = int(spec.get("lookback", 63))
@@ -88,51 +92,60 @@ def dsl_to_weight_fn(spec: dict, macro_df: pd.DataFrame = None, sec_df: pd.DataF
             top_p = float(spec.get("top_pct", 0.20))
             allow_short = bool(spec.get("allow_short", False))
             sig = sub_c.shift(sk).pct_change(lb, fill_method=None) if sk > 0 else sub_c.pct_change(lb, fill_method=None)
-            vol = sub_c.pct_change(fill_method=None).rolling(max(20, lb // 2)).std().replace(0.0, np.nan)
+            vol = sub_c.pct_change(fill_method=None).rolling(max(15, lb // 2)).std().replace(0.0, np.nan)
             rk = sig.rank(axis=1, pct=True)
             raw = ((rk >= (1.0 - top_p)).astype(float) - ((rk <= top_p).astype(float) if allow_short else 0.0)) / vol
-            w[cols] = raw.div(raw.abs().sum(axis=1).replace(0.0, np.nan), axis=0).fillna(0.0)
+            sub_w = raw.div(raw.abs().sum(axis=1).replace(0.0, np.nan), axis=0).fillna(0.0).values
+            for j, c in enumerate(cols):
+                w_arr[:, col_idx[c]] = sub_w[:, j]
 
             if kind == "regime_cs_momentum":
-                tw = int(spec.get("trend_window", 100))
-                vix_th = float(spec.get("vix_thresh", 24.0))
+                tw = int(spec.get("trend_window", 40))
+                vix_th = float(spec.get("vix_thresh", 23.0))
+                vol_ratio_th = float(spec.get("vol_spike_ratio", 1.35))
                 hr = float(spec.get("hedge_ratio", 1.0))
-                hmw = int(spec.get("hedge_mom_window", 21))
+                hmw = int(spec.get("hedge_mom_window", 15))
+                pure_shy = bool(spec.get("pure_shy", False))
                 def_pool = spec.get("defensive_assets", ["SHY", "GLD", "UUP", "SH", "PSQ"])
+
                 spy = closes["SPY"] if "SPY" in closes.columns else closes.iloc[:, 0]
-                spy_bad = spy < spy.rolling(tw).mean()
+                spy_r = spy.pct_change(fill_method=None)
+                vol_spike = (spy_r.rolling(10).std() / spy_r.rolling(60).std().replace(0.0, np.nan)) > vol_ratio_th
+                risk_off = (spy < spy.rolling(tw).mean()) | vol_spike
                 if macro_df is not None and "VIXCLS" in macro_df.columns:
-                    vix_bad = macro_df["VIXCLS"].reindex(closes.index).ffill().fillna(0.0) > vix_th
-                    risk_off = spy_bad | vix_bad
-                else:
-                    risk_off = spy_bad
-                for dt in closes.index[risk_off.fillna(False)]:
-                    w.loc[dt] = w.loc[dt] * (1.0 - hr)
-                    da = _pick_defensive(closes, dt, def_pool, hmw)
-                    w.loc[dt, da] = w.loc[dt, da] + hr
+                    risk_off = risk_off | (macro_df["VIXCLS"].reindex(closes.index).ffill().fillna(0.0) > vix_th)
+
+                ro_mask = risk_off.fillna(False).values
+                chosen_def = _pick_defensive_series(closes, def_pool, hmw, pure_shy=pure_shy)
+                w_arr[ro_mask] *= (1.0 - hr)
+                for i in np.where(ro_mask)[0]:
+                    da = chosen_def[i]
+                    if da and da in col_idx:
+                        w_arr[i, col_idx[da]] += hr
 
         elif kind == "dual_momentum":
-            lb = int(spec.get("lookback", 63))
+            lb = int(spec.get("lookback", 21))
             top_k = int(spec.get("top_k", 3))
-            use_inv = bool(spec.get("use_inverse", True))
-            risk_pool = [a for a in spec.get("assets", ["SPY", "QQQ", "IWM", "TLT", "GLD", "SLV", "DBC", "UUP", "XLE", "XLV", "XLK", "XLF", "XLU", "SMH"]) if a in closes.columns]
-            mom = closes[risk_pool].pct_change(lb, fill_method=None)
-            shy_ret = closes["SHY"].pct_change(lb, fill_method=None) if "SHY" in closes.columns else 0.0
-            def_pool = ["SHY", "SH", "PSQ", "UUP", "GLD"] if use_inv else ["SHY"]
-            for dt in closes.index:
-                s = mom.loc[dt].dropna()
-                th = float(shy_ret.loc[dt]) if isinstance(shy_ret, pd.Series) and pd.notna(shy_ret.loc[dt]) else 0.0
-                winners = s[s > th].nlargest(top_k).index.tolist()
-                for c in winners:
-                    w.loc[dt, c] = 1.0 / top_k
+            use_inv = bool(spec.get("use_inverse", False))
+            risk_pool = [a for a in spec.get("assets", ["SPY", "QQQ", "IWM", "TLT", "GLD", "SLV", "DBC", "UUP", "XLE", "XLV", "XLK", "XLF", "XLU", "SMH"]) if a in col_idx]
+            mom_arr = closes[risk_pool].pct_change(lb, fill_method=None).fillna(-np.inf).values
+            shy_arr = closes["SHY"].pct_change(lb, fill_method=None).fillna(0.0).values if "SHY" in col_idx else np.zeros(len(closes))
+            def_chosen = _pick_defensive_series(closes, ["SHY", "SH", "PSQ", "UUP", "GLD"], max(10, lb), pure_shy=not use_inv)
+            rp_idx = [col_idx[a] for a in risk_pool]
+
+            for i in range(len(closes)):
+                row_m = mom_arr[i]
+                order = np.argsort(row_m)[::-1]
+                winners = [rp_idx[j] for j in order if row_m[j] > shy_arr[i]][:top_k]
+                for ci in winners:
+                    w_arr[i, ci] = 1.0 / top_k
                 rem = 1.0 - len(winners) / top_k
-                if rem > 1e-6:
-                    da = _pick_defensive(closes, dt, def_pool, max(10, lb // 2))
-                    w.loc[dt, da] = w.loc[dt, da] + rem
+                if rem > 1e-6 and def_chosen[i] and def_chosen[i] in col_idx:
+                    w_arr[i, col_idx[def_chosen[i]]] += rem
 
         elif kind == "sharpe_momentum":
-            lb = int(spec.get("lookback", 63))
-            tw = int(spec.get("trend_window", 100))
+            lb = int(spec.get("lookback", 42))
+            tw = int(spec.get("trend_window", 60))
             top_p = float(spec.get("top_pct", 0.20))
             ret = sub_c.pct_change(lb, fill_method=None)
             vol = (sub_c.pct_change(fill_method=None).rolling(lb).std() * np.sqrt(lb)).replace(0.0, np.nan)
@@ -140,90 +153,90 @@ def dsl_to_weight_fn(spec: dict, macro_df: pd.DataFrame = None, sec_df: pd.DataF
             uptrend = (sub_c > sub_c.rolling(tw).mean()) & (ret > 0)
             rk = sr.where(uptrend).rank(axis=1, pct=True)
             mask = (rk >= (1.0 - top_p)).astype(float)
-            cnt = mask.sum(axis=1)
             target_n = max(3, int(len(cols) * top_p))
-            eq_w = mask.div(cnt.clip(lower=target_n), axis=0).fillna(0.0)
-            w[cols] = eq_w
-            if "SHY" in closes.columns:
-                w["SHY"] = w["SHY"] + (1.0 - eq_w.sum(axis=1)).clip(lower=0.0)
-
-        elif kind == "ts_momentum":
-            lb = int(spec.get("lookback", 60))
-            vw = int(spec.get("vol_window", 40))
-            allow_short = bool(spec.get("allow_short", False))
-            ret = sub_c.pct_change(lb, fill_method=None)
-            vol = sub_c.pct_change(fill_method=None).rolling(vw).std().replace(0.0, np.nan)
-            z = (ret / (vol * np.sqrt(max(lb, 1)))).clip(-2.0, 2.0)
-            if not allow_short:
-                z = z.clip(lower=0.0)
-            raw = z / vol
-            w[cols] = raw.div(raw.abs().sum(axis=1).replace(0.0, np.nan), axis=0).fillna(0.0)
-
-        elif kind == "mean_reversion":
-            lb = int(spec.get("lookback", 5))
-            tw = int(spec.get("trend_window", 150))
-            top_p = float(spec.get("top_pct", 0.15))
-            r_short = sub_c.pct_change(lb, fill_method=None)
-            sma = sub_c.rolling(tw).mean()
-            spy = closes["SPY"] if "SPY" in closes.columns else closes.iloc[:, 0]
-            bull_mkt = spy > spy.rolling(tw).mean()
-            long_rk = r_short.where(sub_c > sma).rank(axis=1, pct=True)
-            long_m = ((long_rk <= top_p) & bull_mkt.values[:, None]).astype(float)
-            w[cols] = long_m.div(long_m.sum(axis=1).replace(0.0, np.nan), axis=0).fillna(0.0)
-            if "SHY" in closes.columns:
-                w.loc[~bull_mkt.fillna(False), "SHY"] = 1.0
-
-        elif kind == "vol_breakout":
-            lb = int(spec.get("lookback", 20))
-            roll_hi = sub_c.shift(1).rolling(lb).max()
-            vol = sub_c.pct_change(fill_method=None).rolling(lb).std().replace(0.0, np.nan)
-            sig = pd.DataFrame(np.where(sub_c > roll_hi, 1.0, 0.0), index=sub_c.index, columns=cols) / vol
-            w[cols] = sig.div(sig.abs().sum(axis=1).replace(0.0, np.nan), axis=0).fillna(0.0)
+            eq_w = mask.div(mask.sum(axis=1).clip(lower=target_n), axis=0).fillna(0.0)
+            for j, c in enumerate(cols):
+                w_arr[:, col_idx[c]] = eq_w.values[:, j]
+            if "SHY" in col_idx:
+                w_arr[:, col_idx["SHY"]] += np.clip(1.0 - eq_w.sum(axis=1).values, 0.0, 1.0)
 
         elif kind == "macro_rotator":
-            vix_th = float(spec.get("vix_thresh", 23.0))
-            tw = int(spec.get("trend_window", 100))
-            mw = int(spec.get("mom_window", 30))
-            on_assets = [a for a in spec.get("risk_on_assets", ["QQQ", "QLD", "SPY", "SMH"]) if a in closes.columns]
-            off_assets = [a for a in spec.get("risk_off_assets", ["SHY", "GLD", "UUP", "SH", "PSQ"]) if a in closes.columns]
+            vix_th = float(spec.get("vix_thresh", 22.0))
+            tw = int(spec.get("trend_window", 40))
+            mw = int(spec.get("mom_window", 21))
+            pure_shy = bool(spec.get("pure_shy", False))
+            on_assets = [a for a in spec.get("risk_on_assets", ["QQQ", "QLD", "SPY", "SMH"]) if a in col_idx]
+            off_assets = [a for a in spec.get("risk_off_assets", ["SHY", "GLD", "UUP", "SH", "PSQ"]) if a in col_idx]
             spy = closes["SPY"] if "SPY" in closes.columns else closes.iloc[:, 0]
             risk_off = spy < spy.rolling(tw).mean()
             if macro_df is not None and "VIXCLS" in macro_df.columns:
                 risk_off = risk_off | (macro_df["VIXCLS"].reindex(closes.index).ffill().fillna(0.0) > vix_th)
-            mom = closes.pct_change(mw, fill_method=None)
-            for dt in closes.index:
-                if bool(risk_off.loc[dt]):
-                    da = _pick_defensive(closes, dt, off_assets, mw)
-                    w.loc[dt, da] = 1.0
-                elif on_assets:
-                    sc = mom.loc[dt, on_assets].dropna()
-                    pos = sc[sc > 0].nlargest(min(2, len(sc)))
-                    chosen = pos.index.tolist() if len(pos) > 0 else ["SHY" if "SHY" in closes.columns else on_assets[0]]
-                    for c in chosen:
-                        w.loc[dt, c] = 1.0 / len(chosen)
+            ro_mask = risk_off.fillna(False).values
+            def_chosen = _pick_defensive_series(closes, off_assets, mw, pure_shy=pure_shy)
+            on_mom = closes[on_assets].pct_change(mw, fill_method=None).fillna(-np.inf).values if on_assets else np.empty((len(closes), 0))
+            on_idx = [col_idx[a] for a in on_assets]
 
-        elif kind == "pairs_reversion":
-            lb = int(spec.get("lookback", 30))
-            ze = float(spec.get("z_entry", 1.5))
-            pairs = [p for p in spec.get("pairs", [["SMH", "QQQ"], ["GLD", "SLV"]]) if p[0] in closes.columns and p[1] in closes.columns]
-            for a, b in pairs:
-                spread = np.log(closes[a]) - np.log(closes[b])
-                z = (spread - spread.rolling(lb).mean()) / spread.rolling(lb).std().replace(0.0, np.nan)
-                pos = np.where(z < -ze, 1.0, np.where(z > ze, -1.0, 0.0))
-                w[a] += pos / (2.0 * max(len(pairs), 1))
-                w[b] -= pos / (2.0 * max(len(pairs), 1))
+            for i in range(len(closes)):
+                if ro_mask[i]:
+                    da = def_chosen[i]
+                    if da and da in col_idx:
+                        w_arr[i, col_idx[da]] = 1.0
+                elif len(on_idx) > 0:
+                    order = np.argsort(on_mom[i])[::-1]
+                    chosen = [on_idx[j] for j in order if on_mom[i][j] > 0.0][:2]
+                    if chosen:
+                        for ci in chosen:
+                            w_arr[i, ci] = 1.0 / len(chosen)
+                    elif "SHY" in col_idx:
+                        w_arr[i, col_idx["SHY"]] = 1.0
 
-        elif kind == "sec_event_drift":
-            mw = int(spec.get("mom_window", 10))
-            top_p = float(spec.get("top_pct", 0.20))
-            ev = sec_df.reindex(index=closes.index, columns=cols).fillna(0.0) if sec_df is not None else 0.0
-            score = sub_c.pct_change(mw, fill_method=None).rank(axis=1, pct=True) + 0.25 * (ev > 0).astype(float)
-            mask = (score.rank(axis=1, pct=True) >= (1.0 - top_p)).astype(float)
-            w[cols] = mask.div(mask.sum(axis=1).replace(0.0, np.nan), axis=0).fillna(0.0)
+        elif kind in ("ts_momentum", "mean_reversion", "vol_breakout", "pairs_reversion", "sec_event_drift"):
+            w_df = pd.DataFrame(0.0, index=closes.index, columns=closes.columns)
+            if kind == "ts_momentum":
+                lb, vw = int(spec.get("lookback", 60)), int(spec.get("vol_window", 40))
+                ret = sub_c.pct_change(lb, fill_method=None)
+                vol = sub_c.pct_change(fill_method=None).rolling(vw).std().replace(0.0, np.nan)
+                z = (ret / (vol * np.sqrt(max(lb, 1)))).clip(-2.0, 2.0)
+                if not bool(spec.get("allow_short", False)):
+                    z = z.clip(lower=0.0)
+                raw = z / vol
+                w_df[cols] = raw.div(raw.abs().sum(axis=1).replace(0.0, np.nan), axis=0).fillna(0.0)
+            elif kind == "mean_reversion":
+                lb, tw, top_p = int(spec.get("lookback", 5)), int(spec.get("trend_window", 100)), float(spec.get("top_pct", 0.15))
+                spy = closes["SPY"] if "SPY" in closes.columns else closes.iloc[:, 0]
+                bull = spy > spy.rolling(tw).mean()
+                rk = sub_c.pct_change(lb, fill_method=None).where(sub_c > sub_c.rolling(tw).mean()).rank(axis=1, pct=True)
+                lm = ((rk <= top_p) & bull.values[:, None]).astype(float)
+                w_df[cols] = lm.div(lm.sum(axis=1).replace(0.0, np.nan), axis=0).fillna(0.0)
+                if "SHY" in w_df.columns:
+                    w_df.loc[~bull.fillna(False), "SHY"] = 1.0
+            elif kind == "vol_breakout":
+                lb = int(spec.get("lookback", 20))
+                vol = sub_c.pct_change(fill_method=None).rolling(lb).std().replace(0.0, np.nan)
+                sig = pd.DataFrame(np.where(sub_c > sub_c.shift(1).rolling(lb).max(), 1.0, 0.0), index=sub_c.index, columns=cols) / vol
+                w_df[cols] = sig.div(sig.abs().sum(axis=1).replace(0.0, np.nan), axis=0).fillna(0.0)
+            elif kind == "pairs_reversion":
+                lb, ze = int(spec.get("lookback", 30)), float(spec.get("z_entry", 1.5))
+                pairs = [p for p in spec.get("pairs", [["SMH", "QQQ"], ["GLD", "SLV"]]) if p[0] in closes.columns and p[1] in closes.columns]
+                for a, b in pairs:
+                    sp = np.log(closes[a]) - np.log(closes[b])
+                    z = (sp - sp.rolling(lb).mean()) / sp.rolling(lb).std().replace(0.0, np.nan)
+                    pos = np.where(z < -ze, 1.0, np.where(z > ze, -1.0, 0.0))
+                    w_df[a] += pos / (2.0 * max(len(pairs), 1))
+                    w_df[b] -= pos / (2.0 * max(len(pairs), 1))
+            elif kind == "sec_event_drift":
+                mw, top_p = int(spec.get("mom_window", 10)), float(spec.get("top_pct", 0.20))
+                ev = sec_df.reindex(index=closes.index, columns=cols).fillna(0.0) if sec_df is not None else 0.0
+                sc = sub_c.pct_change(mw, fill_method=None).rank(axis=1, pct=True) + 0.25 * (ev > 0).astype(float)
+                m = (sc.rank(axis=1, pct=True) >= (1.0 - top_p)).astype(float)
+                w_df[cols] = m.div(m.sum(axis=1).replace(0.0, np.nan), axis=0).fillna(0.0)
+            return _normalize_weights(w_df, max_pos=max_pos)
 
         elif kind == "composite":
+            w_df = pd.DataFrame(0.0, index=closes.index, columns=closes.columns)
             for leg in spec.get("legs", []):
-                w = w + float(leg.get("weight", 0.5)) * dsl_to_weight_fn(leg["spec"], macro_df=macro_df, sec_df=sec_df)(closes, dollar_vol)
+                w_df = w_df + float(leg.get("weight", 0.5)) * dsl_to_weight_fn(leg["spec"], macro_df=macro_df, sec_df=sec_df)(closes, dollar_vol)
+            return _normalize_weights(w_df, max_pos=max_pos)
 
-        return _normalize_weights(w, max_pos=max_pos)
+        return _normalize_weights(pd.DataFrame(w_arr, index=closes.index, columns=closes.columns), max_pos=max_pos)
     return weight_fn
