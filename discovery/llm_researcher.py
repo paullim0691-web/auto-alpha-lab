@@ -97,24 +97,23 @@ def run_llm_research_cycle(ohlcv: dict, macro_df, sec_df, fred_latest: dict, reg
     top_lose = ret_20.nsmallest(5).round(3).to_dict()
     failures = get_recent_failures(8)
 
-    research_prompt = f"""You are a ruthless quantitative alpha researcher maximizing out-of-sample geometric wealth across ALL regimes (including VIX > 30 selloffs).
+    research_prompt = f"""You are an institutional quant researcher maximizing out-of-sample geometric wealth across bull markets AND VIX>30 selloffs.
 Current regime: {regime_tag}. Macro: {json.dumps(fred_latest)}.
 20d winners: {json.dumps(top_win)}. Losers: {json.dumps(top_lose)}.
-Avoid repeating recent failures: {json.dumps(failures[:5])}.
-IMPORTANT: Long-only equity momentum just lost -31% in the last 63 days. Propose 3 diverse hypotheses that can make positive money in BOTH bull markets AND VIX>30 selloffs (using macro_rotator with inverse/bond/gold/T-bill ETFs, pairs_reversion, or long/short ts_momentum).
+Avoid recent failures: {json.dumps(failures[:5])}.
+Unhedged long equity strategies failed in the recent -20% selloff. Propose 3 adaptive hypotheses that capture bull upside while rotating to SHY/GLD/UUP/SH/PSQ during VIX spikes or SPY downtrends.
 Return JSON: {{"hypotheses": [{{"rationale": "short reason", "spec": <DSL_JSON>}}]}}
-Allowed DSL kinds:
-1) {{"kind":"cs_momentum","pool":"all|stocks|etfs","lookback":20..126,"skip":0..10,"top_pct":0.1..0.25,"allow_short":true,"max_pos_weight":0.2}}
-2) {{"kind":"ts_momentum","pool":"etfs|all","lookback":15..90,"vol_window":15..45,"allow_short":true,"max_pos_weight":0.3}}
-3) {{"kind":"mean_reversion","pool":"all|stocks","lookback":2..8,"trend_window":50..200,"top_pct":0.1..0.2,"allow_short":true,"max_pos_weight":0.2}}
-4) {{"kind":"macro_rotator","vix_thresh":19..28,"curve_thresh":-0.2..0.2,"mom_window":15..63,"risk_on_assets":["QQQ","QLD","SPY","SMH","NVDA"],"risk_off_assets":["TLT","GLD","UUP","SHY","SH","PSQ","QID"],"max_pos_weight":0.5}}
-5) {{"kind":"pairs_reversion","lookback":15..60,"z_entry":1.2..2.0,"pairs":[["SMH","QQQ"],["XLE","USO"],["GLD","SLV"],["HYG","LQD"]],"max_pos_weight":0.25}}"""
+Allowed DSL specs:
+1) {{"kind":"regime_cs_momentum","pool":"all|stocks|etfs","lookback":21..126,"skip":0..5,"top_pct":0.15..0.25,"trend_window":60..150,"vix_thresh":21..28,"hedge_ratio":0.75..1.0,"hedge_mom_window":10..42,"defensive_assets":["SHY","GLD","UUP","SH","PSQ","QID"],"max_pos_weight":0.45}}
+2) {{"kind":"dual_momentum","lookback":21..126,"top_k":2..4,"use_inverse":true|false,"max_pos_weight":0.5}}
+3) {{"kind":"sharpe_momentum","pool":"all|stocks|etfs","lookback":21..90,"trend_window":50..150,"top_pct":0.15..0.25,"max_pos_weight":0.45}}
+4) {{"kind":"macro_rotator","vix_thresh":20..26,"trend_window":60..150,"mom_window":21..50,"risk_on_assets":["QQQ","QLD","SPY","SMH","NVDA"],"risk_off_assets":["SHY","GLD","UUP","SH","PSQ","QID"],"max_pos_weight":0.5}}"""
 
     prop = _safe_llm_json(research_prompt, prefer="gemini")
     if not prop or not prop.get("hypotheses"):
         return {"status": "SKIPPED_OR_QUOTA_GUARD", "evaluated": []}
 
-    critic_prompt = f"""You are a quantitative critic. Only reject hypotheses that are exact duplicates of recent failures or structurally invalid. Do NOT reject macro_rotator or pairs_reversion just for listing ETFs—let the backtest kernel decide.
+    critic_prompt = f"""You are a quantitative critic. Only reject exact duplicates of recent failures or structurally invalid JSON. Approve adaptive strategies for kernel testing.
 Recent failures: {json.dumps(failures[:5])}. Proposed: {json.dumps(prop)}.
 Return JSON: {{"approved_indices": [0, 1, 2], "critique": "brief summary"}}"""
     critique = _safe_llm_json(critic_prompt, prefer="groq")
