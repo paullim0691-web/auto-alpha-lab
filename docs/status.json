@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-11-25T14:59:21.914312+00:00",
+  "updated_at_utc": "2026-11-25T15:12:43.180863+00:00",
   "phase": "PHASE_2_AUTONOMOUS_LIVE",
   "regime": "HIGH_VOL_POS_CURVE",
   "data_meta": {
@@ -30,70 +30,171 @@
   },
   "evolution_summary": {
     "tested": 100,
-    "passed": 0,
-    "winners": []
+    "passed": 3,
+    "winners": [
+      {
+        "strategy_id": "evo__dual_mom_2b98e97e",
+        "log_wealth": 0.6310054467054885,
+        "cagr": 0.3224169852755392,
+        "sharpe": 1.1135444391262317,
+        "deflated_sharpe": 0.5765130842437824,
+        "max_drawdown": -0.2558932726584344,
+        "avg_gross_exposure": 1.0,
+        "pre_log_wealth": 0.5899039085071554,
+        "lockbox_log_wealth": 0.04110153819833242,
+        "lockbox_cagr": 0.17869294732026653,
+        "plateau_ok": true,
+        "passed": true
+      },
+      {
+        "strategy_id": "evo__mean_rev_a10b68e8",
+        "log_wealth": 0.579880329019181,
+        "cagr": 0.2928107248641383,
+        "sharpe": 1.103330858692792,
+        "deflated_sharpe": 0.5544014185477186,
+        "max_drawdown": -0.1813742704590886,
+        "avg_gross_exposure": 0.9101045296167249,
+        "pre_log_wealth": 0.5606115706190679,
+        "lockbox_log_wealth": 0.019268758400113536,
+        "lockbox_cagr": 0.08012311887865065,
+        "plateau_ok": true,
+        "passed": true
+      },
+      {
+        "strategy_id": "evo__mean_rev_a10b68e8",
+        "log_wealth": 0.579880329019181,
+        "cagr": 0.2928107248641383,
+        "sharpe": 1.103330858692792,
+        "deflated_sharpe": 0.5544014185477186,
+        "max_drawdown": -0.1813742704590886,
+        "avg_gross_exposure": 0.9101045296167249,
+        "pre_log_wealth": 0.5606115706190679,
+        "lockbox_log_wealth": 0.019268758400113536,
+        "lockbox_cagr": 0.08012311887865065,
+        "plateau_ok": true,
+        "passed": true
+      }
+    ]
   },
   "llm_research": {
     "status": "OK",
-    "critique": "All three hypotheses address the HIGH_VOL_POS_CURVE failures by adding VIX\u2011driven defensive overlays and tighter position limits, which should reduce plateauing and improve drawdown resilience.",
+    "critique": "All three proposals differ from recent failures: the regime_cs_momentum adds VIX\u2011based defensive hedging, the dual_momentum uses inverse exposure to rotate out of laggards, and the macro_rotator adds macro\u2011driven risk\u2011on/off switches. These adaptations target the volatility and drawdown issues that caused prior failures.",
     "evaluated": [
       {
-        "strategy_id": "llm__regime_c_a3326e7c",
-        "log_wealth": 0.34091187860460986,
-        "cagr": 0.16297784059731235,
-        "sharpe": 1.036546926361533,
-        "deflated_sharpe": 0.0019338088144265004,
-        "max_drawdown": -0.12451983964998159,
-        "avg_gross_exposure": 0.8845533259160477,
-        "pre_log_wealth": 0.3403716689980596,
-        "lockbox_log_wealth": 0.0005402096065500816,
-        "lockbox_cagr": 0.0021631747200339113,
+        "strategy_id": "llm__regime_c_c6441222",
+        "log_wealth": 0.7671812791223382,
+        "cagr": 0.40462585327142553,
+        "sharpe": 1.3586836318290674,
+        "deflated_sharpe": 0.6931186125492397,
+        "max_drawdown": -0.21790159002931264,
+        "avg_gross_exposure": 0.8841463414634146,
+        "pre_log_wealth": 0.7913215775001996,
+        "lockbox_log_wealth": -0.02414029837786129,
+        "lockbox_cagr": -0.09204566501425815,
         "plateau_ok": true,
         "passed": false,
-        "rationale": "Capture broad equity momentum in ETFs while automatically shifting to short\u2011duration Treasury, gold, dollar and inverse volatility assets when VIX spikes above 28, preserving upside in bull markets."
+        "rationale": "Capture broad equity momentum but switch to short\u2011term defensive assets when VIX exceeds a moderate level"
       },
       {
         "strategy_id": "llm__dual_mom_f74980c4",
-        "log_wealth": 0.47411517160031796,
-        "cagr": 0.23364992470630064,
-        "sharpe": 1.017915262642533,
-        "deflated_sharpe": 0.009285798061256803,
+        "log_wealth": 0.47576672047572593,
+        "cagr": 0.23455259776734616,
+        "sharpe": 1.0210851619062569,
+        "deflated_sharpe": 0.5051097116616649,
         "max_drawdown": -0.16775627250618386,
         "avg_gross_exposure": 0.9937572590011615,
         "pre_log_wealth": 0.5651272265681376,
-        "lockbox_log_wealth": -0.09101205496781924,
-        "lockbox_cagr": -0.3051423120131992,
+        "lockbox_log_wealth": -0.08936050609241122,
+        "lockbox_cagr": -0.30053675040995165,
         "plateau_ok": true,
         "passed": false,
-        "rationale": "Dual\u2011momentum with an inverse\u2011ETF overlay: stay long the top 3 assets over a 9\u2011week lookback, but flip to inverse ETFs when VIX exceeds 24 or SPY trends down, limiting exposure to 45% per leg."
+        "rationale": "Use dual\u2011momentum with inverse exposure to rotate out of lagging stocks into safe havens during drawdowns"
       },
       {
-        "strategy_id": "llm__macro_ro_95ed6e07",
-        "log_wealth": 0.29996523387384255,
-        "cagr": 0.14207784860696493,
-        "sharpe": 0.6514199933623613,
-        "deflated_sharpe": 5.654796695826682e-23,
-        "max_drawdown": -0.2290154550544854,
-        "avg_gross_exposure": 0.741637630662021,
-        "pre_log_wealth": 0.40959066486422974,
-        "lockbox_log_wealth": -0.10962543099038777,
-        "lockbox_cagr": -0.3549979113416135,
+        "strategy_id": "llm__macro_ro_1c4439bd",
+        "log_wealth": -0.0371126892168806,
+        "cagr": -0.016302208231079085,
+        "sharpe": 0.02702064139897532,
+        "deflated_sharpe": 0.06976078457903437,
+        "max_drawdown": -0.24846005818309536,
+        "avg_gross_exposure": 0.8388501742160279,
+        "pre_log_wealth": 0.0788770679600964,
+        "lockbox_log_wealth": -0.1159897571769781,
+        "lockbox_cagr": -0.3712106837499143,
         "plateau_ok": true,
         "passed": false,
-        "rationale": "Macro\u2011rotator that leans into growth tech and QQQ when macro momentum is positive and VIX low, rotating fully to a defensive basket when VIX >24 or trend turns bearish, smoothing drawdowns."
+        "rationale": "Macro\u2011driven rotator that goes risk\u2011on on tech\u2011heavy ETFs in calm markets and flips to Treasury/Gold/FX hedges when VIX spikes or SPY trends down"
       }
     ]
   },
   "paper_execution": {
     "trade_date": "2026-11-25",
     "account_equity": 100000.0,
-    "target_gross_leverage": 0.0,
-    "target_net_exposure": 0.0,
-    "kelly_weights": {},
-    "surviving_strategies": [],
+    "target_gross_leverage": 1.2977,
+    "target_net_exposure": 1.2977,
+    "kelly_weights": {
+      "evo__dual_mom_2b98e97e": 0.9038,
+      "evo__mean_rev_a10b68e8": 0.9848
+    },
+    "surviving_strategies": [
+      {
+        "strategy_id": "evo__dual_mom_2b98e97e",
+        "origin": "evo_math",
+        "cusum": 6.9083,
+        "log_wealth": 0.6310054467054885,
+        "cagr": 0.3224169852755392,
+        "sharpe": 1.1135444391262317,
+        "deflated_sharpe": 0.8506009260777199,
+        "max_drawdown": -0.2558932726584344,
+        "avg_gross_exposure": 1.0,
+        "pre_log_wealth": 0.5899039085071554,
+        "lockbox_log_wealth": 0.04110153819833242,
+        "lockbox_cagr": 0.17869294732026653
+      },
+      {
+        "strategy_id": "evo__mean_rev_a10b68e8",
+        "origin": "evo_math",
+        "cusum": 6.964,
+        "log_wealth": 0.579880329019181,
+        "cagr": 0.2928107248641383,
+        "sharpe": 1.103330858692792,
+        "deflated_sharpe": 0.871874130096155,
+        "max_drawdown": -0.1813742704590886,
+        "avg_gross_exposure": 0.9101045296167249,
+        "pre_log_wealth": 0.5606115706190679,
+        "lockbox_log_wealth": 0.019268758400113536,
+        "lockbox_cagr": 0.08012311887865065
+      }
+    ],
     "retired_now": [],
-    "orders_submitted": [],
+    "orders_submitted": [
+      {
+        "symbol": "SHY",
+        "side": "buy",
+        "qty": 482.0,
+        "status": "pending_new",
+        "order_id": "1888ef6b-b2cb-46fc-b245-d79280964400"
+      },
+      {
+        "symbol": "XLU",
+        "side": "buy",
+        "qty": 1039.0,
+        "status": "pending_new",
+        "order_id": "e6fa3824-6431-424b-91f6-3789f9734f01"
+      },
+      {
+        "symbol": "XLV",
+        "side": "buy",
+        "qty": 246.0,
+        "status": "pending_new",
+        "order_id": "bf90a20f-6108-42b4-bd74-61881a3a21d8"
+      }
+    ],
     "current_positions": {},
-    "top_targets": {}
+    "top_targets": {
+      "SHY": 0.3939,
+      "XLU": 0.4519,
+      "XLV": 0.4519
+    }
   }
 }
