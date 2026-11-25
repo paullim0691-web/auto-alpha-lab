@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-11-25T04:41:58.376306+00:00",
+  "updated_at_utc": "2026-11-25T14:59:21.914312+00:00",
   "phase": "PHASE_2_AUTONOMOUS_LIVE",
   "regime": "HIGH_VOL_POS_CURVE",
   "data_meta": {
@@ -7,8 +7,8 @@
     "valid_symbols": 100,
     "quarantined": [],
     "start_date": "2023-08-14",
-    "end_date": "2026-11-24",
-    "trading_days": 825
+    "end_date": "2026-11-25",
+    "trading_days": 826
   },
   "fred_latest": {
     "DFF": {
@@ -24,68 +24,68 @@
       "value": 4.63
     },
     "VIXCLS": {
-      "date": "2026-11-23",
-      "value": 26.62
+      "date": "2026-11-24",
+      "value": 26.36
     }
   },
   "evolution_summary": {
-    "tested": 80,
+    "tested": 100,
     "passed": 0,
     "winners": []
   },
   "llm_research": {
     "status": "OK",
-    "critique": "All three proposals avoid previously failed regimes and introduce diversification, dynamic hedging, and position caps; they appear sound for kernel testing.",
+    "critique": "All three hypotheses address the HIGH_VOL_POS_CURVE failures by adding VIX\u2011driven defensive overlays and tighter position limits, which should reduce plateauing and improve drawdown resilience.",
     "evaluated": [
       {
-        "strategy_id": "llm__regime_c_7de74fe2",
-        "log_wealth": 0.4942899310544111,
-        "cagr": 0.24520185022224616,
-        "sharpe": 0.9543062025281258,
-        "deflated_sharpe": 5.62790680283967e-05,
-        "max_drawdown": -0.27688015317740833,
-        "avg_gross_exposure": 0.9327381721778489,
-        "pre_log_wealth": 0.6003575840202823,
-        "lockbox_log_wealth": -0.10606765296587078,
-        "lockbox_cagr": -0.34575318899750807,
+        "strategy_id": "llm__regime_c_a3326e7c",
+        "log_wealth": 0.34091187860460986,
+        "cagr": 0.16297784059731235,
+        "sharpe": 1.036546926361533,
+        "deflated_sharpe": 0.0019338088144265004,
+        "max_drawdown": -0.12451983964998159,
+        "avg_gross_exposure": 0.8845533259160477,
+        "pre_log_wealth": 0.3403716689980596,
+        "lockbox_log_wealth": 0.0005402096065500816,
+        "lockbox_cagr": 0.0021631747200339113,
         "plateau_ok": true,
         "passed": false,
-        "rationale": "Capture broad equity upside while automatically shifting to safe\u2011haven ETFs when VIX >30 or SPY trends negative"
+        "rationale": "Capture broad equity momentum in ETFs while automatically shifting to short\u2011duration Treasury, gold, dollar and inverse volatility assets when VIX spikes above 28, preserving upside in bull markets."
       },
       {
-        "strategy_id": "llm__sharpe_m_68258fbc",
-        "log_wealth": 0.2074804036321625,
-        "cagr": 0.09642091901296346,
-        "sharpe": 0.7283230782587672,
-        "deflated_sharpe": 1.5264857910853242e-08,
-        "max_drawdown": -0.12399846748803733,
-        "avg_gross_exposure": 0.9584143605086014,
-        "pre_log_wealth": 0.27940769728798565,
-        "lockbox_log_wealth": -0.07192729365582362,
-        "lockbox_cagr": -0.2500203263531898,
+        "strategy_id": "llm__dual_mom_f74980c4",
+        "log_wealth": 0.47411517160031796,
+        "cagr": 0.23364992470630064,
+        "sharpe": 1.017915262642533,
+        "deflated_sharpe": 0.009285798061256803,
+        "max_drawdown": -0.16775627250618386,
+        "avg_gross_exposure": 0.9937572590011615,
+        "pre_log_wealth": 0.5651272265681376,
+        "lockbox_log_wealth": -0.09101205496781924,
+        "lockbox_cagr": -0.3051423120131992,
         "plateau_ok": true,
         "passed": false,
-        "rationale": "Select the highest\u2011Sharpe ETFs on a medium\u2011term trend, limiting exposure to any single position"
+        "rationale": "Dual\u2011momentum with an inverse\u2011ETF overlay: stay long the top 3 assets over a 9\u2011week lookback, but flip to inverse ETFs when VIX exceeds 24 or SPY trends down, limiting exposure to 45% per leg."
       },
       {
-        "strategy_id": "llm__dual_mom_28ff6dca",
-        "log_wealth": 0.5100907547590592,
-        "cagr": 0.25396166312049573,
-        "sharpe": 1.095379278552228,
-        "deflated_sharpe": 0.13839805060418087,
-        "max_drawdown": -0.18770665700677547,
-        "avg_gross_exposure": 0.9860383944153578,
-        "pre_log_wealth": 0.5497551496590513,
-        "lockbox_log_wealth": -0.03966439489999199,
-        "lockbox_cagr": -0.14671150766304653,
+        "strategy_id": "llm__macro_ro_95ed6e07",
+        "log_wealth": 0.29996523387384255,
+        "cagr": 0.14207784860696493,
+        "sharpe": 0.6514199933623613,
+        "deflated_sharpe": 5.654796695826682e-23,
+        "max_drawdown": -0.2290154550544854,
+        "avg_gross_exposure": 0.741637630662021,
+        "pre_log_wealth": 0.40959066486422974,
+        "lockbox_log_wealth": -0.10962543099038777,
+        "lockbox_cagr": -0.3549979113416135,
         "plateau_ok": true,
         "passed": false,
-        "rationale": "Dual\u2011momentum with inverse ETFs to provide built\u2011in downside protection during sharp market drops"
+        "rationale": "Macro\u2011rotator that leans into growth tech and QQQ when macro momentum is positive and VIX low, rotating fully to a defensive basket when VIX >24 or trend turns bearish, smoothing drawdowns."
       }
     ]
   },
   "paper_execution": {
-    "trade_date": "2026-11-24",
+    "trade_date": "2026-11-25",
     "account_equity": 100000.0,
     "target_gross_leverage": 0.0,
     "target_net_exposure": 0.0,
