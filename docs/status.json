@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-11-25T15:12:43.180863+00:00",
+  "updated_at_utc": "2026-11-26T03:48:29.469135+00:00",
   "phase": "PHASE_2_AUTONOMOUS_LIVE",
   "regime": "HIGH_VOL_POS_CURVE",
   "data_meta": {
@@ -12,15 +12,15 @@
   },
   "fred_latest": {
     "DFF": {
-      "date": "2026-11-23",
+      "date": "2026-11-24",
       "value": 3.88
     },
     "DGS10": {
-      "date": "2026-11-23",
-      "value": 4.92
+      "date": "2026-11-24",
+      "value": 4.91
     },
     "DGS2": {
-      "date": "2026-11-23",
+      "date": "2026-11-24",
       "value": 4.63
     },
     "VIXCLS": {
@@ -29,48 +29,76 @@
     }
   },
   "evolution_summary": {
-    "tested": 100,
-    "passed": 3,
+    "tested": 101,
+    "passed": 7,
     "winners": [
       {
+        "strategy_id": "evo__mean_rev_7683e5d8",
+        "log_wealth": 0.672069430322617,
+        "cagr": 0.34668716020371626,
+        "sharpe": 1.2452494245260506,
+        "deflated_sharpe": 0.63613562167556,
+        "max_drawdown": -0.19759593161577682,
+        "avg_gross_exposure": 0.9059233449477352,
+        "pre_log_wealth": 0.6679500442755373,
+        "lockbox_log_wealth": 0.004119386047080593,
+        "lockbox_cagr": 0.016614047636130502,
+        "plateau_ok": true,
+        "passed": true
+      },
+      {
+        "strategy_id": "evo__mean_rev_7683e5d8",
+        "log_wealth": 0.672069430322617,
+        "cagr": 0.34668716020371626,
+        "sharpe": 1.2452494245260506,
+        "deflated_sharpe": 0.63613562167556,
+        "max_drawdown": -0.19759593161577682,
+        "avg_gross_exposure": 0.9059233449477352,
+        "pre_log_wealth": 0.6679500442755373,
+        "lockbox_log_wealth": 0.004119386047080593,
+        "lockbox_cagr": 0.016614047636130502,
+        "plateau_ok": true,
+        "passed": true
+      },
+      {
+        "strategy_id": "evo__mean_rev_7683e5d8",
+        "log_wealth": 0.672069430322617,
+        "cagr": 0.34668716020371626,
+        "sharpe": 1.2452494245260506,
+        "deflated_sharpe": 0.63613562167556,
+        "max_drawdown": -0.19759593161577682,
+        "avg_gross_exposure": 0.9059233449477352,
+        "pre_log_wealth": 0.6679500442755373,
+        "lockbox_log_wealth": 0.004119386047080593,
+        "lockbox_cagr": 0.016614047636130502,
+        "plateau_ok": true,
+        "passed": true
+      },
+      {
         "strategy_id": "evo__dual_mom_2b98e97e",
-        "log_wealth": 0.6310054467054885,
-        "cagr": 0.3224169852755392,
-        "sharpe": 1.1135444391262317,
-        "deflated_sharpe": 0.5765130842437824,
+        "log_wealth": 0.6338716402170137,
+        "cagr": 0.32409670907062305,
+        "sharpe": 1.117961189838893,
+        "deflated_sharpe": 0.5569571222932914,
         "max_drawdown": -0.2558932726584344,
         "avg_gross_exposure": 1.0,
         "pre_log_wealth": 0.5899039085071554,
-        "lockbox_log_wealth": 0.04110153819833242,
-        "lockbox_cagr": 0.17869294732026653,
+        "lockbox_log_wealth": 0.04396773170985745,
+        "lockbox_cagr": 0.19228415683416578,
         "plateau_ok": true,
         "passed": true
       },
       {
-        "strategy_id": "evo__mean_rev_a10b68e8",
-        "log_wealth": 0.579880329019181,
-        "cagr": 0.2928107248641383,
-        "sharpe": 1.103330858692792,
-        "deflated_sharpe": 0.5544014185477186,
-        "max_drawdown": -0.1813742704590886,
-        "avg_gross_exposure": 0.9101045296167249,
-        "pre_log_wealth": 0.5606115706190679,
-        "lockbox_log_wealth": 0.019268758400113536,
-        "lockbox_cagr": 0.08012311887865065,
-        "plateau_ok": true,
-        "passed": true
-      },
-      {
-        "strategy_id": "evo__mean_rev_a10b68e8",
-        "log_wealth": 0.579880329019181,
-        "cagr": 0.2928107248641383,
-        "sharpe": 1.103330858692792,
-        "deflated_sharpe": 0.5544014185477186,
-        "max_drawdown": -0.1813742704590886,
-        "avg_gross_exposure": 0.9101045296167249,
-        "pre_log_wealth": 0.5606115706190679,
-        "lockbox_log_wealth": 0.019268758400113536,
-        "lockbox_cagr": 0.08012311887865065,
+        "strategy_id": "evo__dual_mom_ad5c41a7",
+        "log_wealth": 0.5936265719190144,
+        "cagr": 0.30070532050199206,
+        "sharpe": 1.047919335631606,
+        "deflated_sharpe": 0.519533699855333,
+        "max_drawdown": -0.25589327265843453,
+        "avg_gross_exposure": 1.0,
+        "pre_log_wealth": 0.5496588402091569,
+        "lockbox_log_wealth": 0.04396773170985745,
+        "lockbox_cagr": 0.19228415683416578,
         "plateau_ok": true,
         "passed": true
       }
@@ -78,123 +106,187 @@
   },
   "llm_research": {
     "status": "OK",
-    "critique": "All three proposals differ from recent failures: the regime_cs_momentum adds VIX\u2011based defensive hedging, the dual_momentum uses inverse exposure to rotate out of laggards, and the macro_rotator adds macro\u2011driven risk\u2011on/off switches. These adaptations target the volatility and drawdown issues that caused prior failures.",
+    "critique": "All three proposals differ from recent failures: the macro rotator adds a VIX\u2011based switch, the dual\u2011momentum uses a longer lookback and no inverse exposure, and the regime\u2011CS momentum tightens the VIX trigger and raises the hedge ratio, addressing prior plateau issues.",
     "evaluated": [
       {
-        "strategy_id": "llm__regime_c_c6441222",
-        "log_wealth": 0.7671812791223382,
-        "cagr": 0.40462585327142553,
-        "sharpe": 1.3586836318290674,
-        "deflated_sharpe": 0.6931186125492397,
-        "max_drawdown": -0.21790159002931264,
-        "avg_gross_exposure": 0.8841463414634146,
-        "pre_log_wealth": 0.7913215775001996,
-        "lockbox_log_wealth": -0.02414029837786129,
-        "lockbox_cagr": -0.09204566501425815,
+        "strategy_id": "llm__macro_ro_2f52975d",
+        "log_wealth": 0.0052921393899553046,
+        "cagr": 0.002346543431718251,
+        "sharpe": 0.14085148320370522,
+        "deflated_sharpe": 0.08795168381774338,
+        "max_drawdown": -0.30878335290764747,
+        "avg_gross_exposure": 0.7690766550522649,
+        "pre_log_wealth": 0.1877113525463724,
+        "lockbox_log_wealth": -0.18241921315641632,
+        "lockbox_cagr": -0.5179352571207846,
         "plateau_ok": true,
         "passed": false,
-        "rationale": "Capture broad equity momentum but switch to short\u2011term defensive assets when VIX exceeds a moderate level"
+        "rationale": "Macro\u2011driven rotation: stay long risk\u2011on ETFs when VIX is low, flip to defensive assets when VIX spikes or SPY trends down"
       },
       {
-        "strategy_id": "llm__dual_mom_f74980c4",
-        "log_wealth": 0.47576672047572593,
-        "cagr": 0.23455259776734616,
-        "sharpe": 1.0210851619062569,
-        "deflated_sharpe": 0.5051097116616649,
-        "max_drawdown": -0.16775627250618386,
-        "avg_gross_exposure": 0.9937572590011615,
-        "pre_log_wealth": 0.5651272265681376,
-        "lockbox_log_wealth": -0.08936050609241122,
-        "lockbox_cagr": -0.30053675040995165,
+        "strategy_id": "llm__dual_mom_ba94aa12",
+        "log_wealth": 0.4011412797403769,
+        "cagr": 0.19441718171115374,
+        "sharpe": 0.8610198493097276,
+        "deflated_sharpe": 0.3949359296864922,
+        "max_drawdown": -0.19211099471805204,
+        "avg_gross_exposure": 0.9962833914053426,
+        "pre_log_wealth": 0.4561191425719451,
+        "lockbox_log_wealth": -0.05497786283156824,
+        "lockbox_cagr": -0.19741013691600617,
         "plateau_ok": true,
         "passed": false,
-        "rationale": "Use dual\u2011momentum with inverse exposure to rotate out of lagging stocks into safe havens during drawdowns"
+        "rationale": "Dual\u2011momentum with forward\u2011looking lookback and no inverse exposure to capture 20\u2011day winners while limiting drawdown"
       },
       {
-        "strategy_id": "llm__macro_ro_1c4439bd",
-        "log_wealth": -0.0371126892168806,
-        "cagr": -0.016302208231079085,
-        "sharpe": 0.02702064139897532,
-        "deflated_sharpe": 0.06976078457903437,
-        "max_drawdown": -0.24846005818309536,
-        "avg_gross_exposure": 0.8388501742160279,
-        "pre_log_wealth": 0.0788770679600964,
-        "lockbox_log_wealth": -0.1159897571769781,
-        "lockbox_cagr": -0.3712106837499143,
+        "strategy_id": "llm__regime_c_fdfc6e5e",
+        "log_wealth": 0.2640778041655796,
+        "cagr": 0.12406926357194248,
+        "sharpe": 0.7228383072893878,
+        "deflated_sharpe": 0.3176498749006534,
+        "max_drawdown": -0.13433088938042326,
+        "avg_gross_exposure": 0.8776611893064258,
+        "pre_log_wealth": 0.23106197033067838,
+        "lockbox_log_wealth": 0.03301583383490042,
+        "lockbox_cagr": 0.1411805940389077,
         "plateau_ok": true,
         "passed": false,
-        "rationale": "Macro\u2011driven rotator that goes risk\u2011on on tech\u2011heavy ETFs in calm markets and flips to Treasury/Gold/FX hedges when VIX spikes or SPY trends down"
+        "rationale": "Regime\u2011conditioned CS momentum with tighter VIX trigger and higher hedge ratio to protect during volatility spikes"
       }
     ]
   },
   "paper_execution": {
     "trade_date": "2026-11-25",
-    "account_equity": 100000.0,
-    "target_gross_leverage": 1.2977,
-    "target_net_exposure": 1.2977,
+    "account_equity": 100329.2,
+    "target_gross_leverage": 0.9771,
+    "target_net_exposure": 0.9771,
     "kelly_weights": {
-      "evo__dual_mom_2b98e97e": 0.9038,
-      "evo__mean_rev_a10b68e8": 0.9848
+      "evo__dual_mom_ad5c41a7": 0.0708,
+      "evo__mean_rev_9e8456b0": 1.6134,
+      "evo__dual_mom_2b98e97e": 0.2609,
+      "evo__mean_rev_a10b68e8": 0.0,
+      "evo__mean_rev_7683e5d8": 0.0,
+      "evo__composit_c6d3e53d": 0.0
     },
     "surviving_strategies": [
       {
+        "strategy_id": "evo__dual_mom_ad5c41a7",
+        "origin": "evo_math",
+        "cusum": 6.5255,
+        "log_wealth": 0.5936265719190144,
+        "cagr": 0.30070532050199206,
+        "sharpe": 1.047919335631606,
+        "deflated_sharpe": 0.8312684133901307,
+        "max_drawdown": -0.25589327265843453,
+        "avg_gross_exposure": 1.0,
+        "pre_log_wealth": 0.5496588402091569,
+        "lockbox_log_wealth": 0.04396773170985745,
+        "lockbox_cagr": 0.19228415683416578
+      },
+      {
+        "strategy_id": "evo__mean_rev_9e8456b0",
+        "origin": "evo_math",
+        "cusum": 8.3044,
+        "log_wealth": 0.8533916636550594,
+        "cagr": 0.4592929239652601,
+        "sharpe": 1.265990211710707,
+        "deflated_sharpe": 0.9193942007932175,
+        "max_drawdown": -0.23507987884666137,
+        "avg_gross_exposure": 0.9101045296167249,
+        "pre_log_wealth": 0.8037079318415246,
+        "lockbox_log_wealth": 0.04968373181353461,
+        "lockbox_cagr": 0.21985857177909796
+      },
+      {
         "strategy_id": "evo__dual_mom_2b98e97e",
         "origin": "evo_math",
-        "cusum": 6.9083,
-        "log_wealth": 0.6310054467054885,
-        "cagr": 0.3224169852755392,
-        "sharpe": 1.1135444391262317,
-        "deflated_sharpe": 0.8506009260777199,
+        "cusum": 6.6658,
+        "log_wealth": 0.6338716402170137,
+        "cagr": 0.32409670907062305,
+        "sharpe": 1.117961189838893,
+        "deflated_sharpe": 0.8518746624494222,
         "max_drawdown": -0.2558932726584344,
         "avg_gross_exposure": 1.0,
         "pre_log_wealth": 0.5899039085071554,
-        "lockbox_log_wealth": 0.04110153819833242,
-        "lockbox_cagr": 0.17869294732026653
+        "lockbox_log_wealth": 0.04396773170985745,
+        "lockbox_cagr": 0.19228415683416578
       },
       {
         "strategy_id": "evo__mean_rev_a10b68e8",
         "origin": "evo_math",
-        "cusum": 6.964,
-        "log_wealth": 0.579880329019181,
-        "cagr": 0.2928107248641383,
-        "sharpe": 1.103330858692792,
-        "deflated_sharpe": 0.871874130096155,
+        "cusum": 6.9765,
+        "log_wealth": 0.5796347649177521,
+        "cagr": 0.29267013160998245,
+        "sharpe": 1.1029183164818814,
+        "deflated_sharpe": 0.8717456560312165,
         "max_drawdown": -0.1813742704590886,
         "avg_gross_exposure": 0.9101045296167249,
         "pre_log_wealth": 0.5606115706190679,
-        "lockbox_log_wealth": 0.019268758400113536,
-        "lockbox_cagr": 0.08012311887865065
+        "lockbox_log_wealth": 0.019023194298684647,
+        "lockbox_cagr": 0.07906268192192911
+      },
+      {
+        "strategy_id": "evo__mean_rev_7683e5d8",
+        "origin": "evo_math",
+        "cusum": 8.634,
+        "log_wealth": 0.672069430322617,
+        "cagr": 0.34668716020371626,
+        "sharpe": 1.2452494245260506,
+        "deflated_sharpe": 0.9103275250869882,
+        "max_drawdown": -0.19759593161577682,
+        "avg_gross_exposure": 0.9059233449477352,
+        "pre_log_wealth": 0.6679500442755373,
+        "lockbox_log_wealth": 0.004119386047080593,
+        "lockbox_cagr": 0.016614047636130502
+      },
+      {
+        "strategy_id": "evo__composit_c6d3e53d",
+        "origin": "evo_math",
+        "cusum": 8.4793,
+        "log_wealth": 0.644644740904312,
+        "cagr": 0.3304293544324819,
+        "sharpe": 1.3806252192150512,
+        "deflated_sharpe": 0.9302352384854584,
+        "max_drawdown": -0.16113918123663107,
+        "avg_gross_exposure": 0.9533101045296168,
+        "pre_log_wealth": 0.608394108775113,
+        "lockbox_log_wealth": 0.036250632129199455,
+        "lockbox_cagr": 0.15604249333718956
       }
     ],
     "retired_now": [],
     "orders_submitted": [
       {
-        "symbol": "SHY",
-        "side": "buy",
-        "qty": 482.0,
-        "status": "pending_new",
-        "order_id": "1888ef6b-b2cb-46fc-b245-d79280964400"
-      },
-      {
         "symbol": "XLU",
-        "side": "buy",
-        "qty": 1039.0,
-        "status": "pending_new",
-        "order_id": "e6fa3824-6431-424b-91f6-3789f9734f01"
+        "side": "sell",
+        "qty": 658.0,
+        "status": "accepted",
+        "order_id": "67c8b3e5-3266-40e8-8825-c2c0852eef02"
       },
       {
         "symbol": "XLV",
+        "side": "sell",
+        "qty": 156.0,
+        "status": "accepted",
+        "order_id": "897bcf2a-7a3b-4b63-bd65-8555317c12a1"
+      },
+      {
+        "symbol": "SHY",
         "side": "buy",
-        "qty": 246.0,
-        "status": "pending_new",
-        "order_id": "bf90a20f-6108-42b4-bd74-61881a3a21d8"
+        "qty": 311.0,
+        "status": "accepted",
+        "order_id": "6ce8bb2d-70eb-49b5-a16c-ff78ed468dd3"
       }
     ],
-    "current_positions": {},
+    "current_positions": {
+      "SHY": 482.0,
+      "XLU": 1039.0,
+      "XLV": 246.0
+    },
     "top_targets": {
-      "SHY": 0.3939,
-      "XLU": 0.4519,
-      "XLV": 0.4519
+      "SHY": 0.6454,
+      "XLU": 0.1658,
+      "XLV": 0.1658
     }
   }
 }
